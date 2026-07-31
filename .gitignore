@@ -53,3 +53,7 @@ _deps/
 
 # WiFi credentials (local config, not pushed to public repo)
 wifi_config.cmake
+# The master executable is a build product, refreshed by build.bat
+/EdgeView.exe
+/web/firmware/
+
