@@ -1,0 +1,41 @@
+# Build artifacts
+build/
+build_rp2350/
+_build/
+*.o
+*.obj
+*.elf
+*.uf2
+*.bin
+*.hex
+*.map
+*.dis
+
+# SDK (downloaded toolchain)
+.sdk/
+
+# Downloaded archives
+Waveshare-Code.zip
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# CMake generated
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+build.ninja
+.ninja_*
+compile_commands.json
+_deps/

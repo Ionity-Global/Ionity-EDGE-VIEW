@@ -1,0 +1,8 @@
+add_subdirectory(hello_dvi)
+add_subdirectory(gui_demo)
+add_subdirectory(station_demo)
+add_subdirectory(demo_colors)
+add_subdirectory(demo_bounce)
+add_subdirectory(demo_sysinfo)
+add_subdirectory(demo_rainbow)
+add_subdirectory(wifi_demo)
