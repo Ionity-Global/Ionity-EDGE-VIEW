@@ -90,7 +90,7 @@ if ($Debug) { $publishArgs += @('-p:DebugType=embedded') }
 dotnet @publishArgs | Out-Null
 if ($LASTEXITCODE -ne 0) { Say 'Publish failed.' Red; exit 1 }
 
-$built = Join-Path $publish 'EdgeViewHost.exe'
+$built = Join-Path $publish 'EdgeView.exe'
 if (-not (Test-Path $built)) { Say 'Publish produced no executable.' Red; exit 1 }
 
 Copy-Item $built $target -Force

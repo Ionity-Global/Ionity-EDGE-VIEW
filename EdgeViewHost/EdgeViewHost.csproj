@@ -1,17 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>EdgeView.Host</RootNamespace>
-    <AssemblyName>EdgeViewHost</AssemblyName>
+    <AssemblyName>EdgeView</AssemblyName>
+    <ApplicationIcon>ionity.ico</ApplicationIcon>
 
-    <Product>IO-nity EDGE-VIEW Host</Product>
+    <Product>IO-nity EDGE-VIEW</Product>
     <Company>Ionity Global (Pty) Ltd</Company>
     <Authors>Johan Wilhelm van Antwerp</Authors>
-    <Description>Headless server for IO-nity EDGE-VIEW: feed scheduler, device link, AI engine and the web console, in one executable.</Description>
+    <Description>IO-nity EDGE-VIEW: the server, the AI and the console in one application.</Description>
     <Version>2.1.0</Version>
 
     <!-- One file, no runtime to install. -->
@@ -26,6 +28,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EdgeView.Core\EdgeView.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3124.44" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="ionity.ico" LogicalName="EdgeView.Icon.ico" />
   </ItemGroup>
 
 </Project>

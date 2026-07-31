@@ -79,6 +79,15 @@ bridge.events.addEventListener('bridge', (e) => {
     sentinel.feeds = !!info.feeds;
     $('btnFeeds').textContent = `🔄 Feeds: ${info.feeds ? 'on' : 'off'}`;
     if (info.device) { $('ipInput').value = info.device; pill('pillDevice', 'on', info.device); }
+
+    // Served by the app itself, so there is nothing to download or start.
+    if (info.hosted) {
+      $('btnDownloadServer').hidden = true;
+      $('btnStartServer').hidden = true;
+      $('btnPair').hidden = true;
+      $('tokenInput').hidden = true;
+      s.textContent += ' · running inside the app';
+    }
   } else {
     s.className = 'state err';
     s.textContent = `No server on 127.0.0.1:8787 — ${error || 'not running'}. Open EDGE-VIEW Studio → Control → Web Console Bridge.`;
