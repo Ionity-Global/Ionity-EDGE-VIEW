@@ -72,6 +72,16 @@
 #define CW24  17
 
 uint8_t framebuf[3 * PLANE_SIZE_BYTES];
+static uint8_t backbuf[3 * PLANE_SIZE_BYTES];
+
+/* Double buffered. Core 1 scans `scan_buf` while core 0 paints `draw_buf`;
+ * without this the panel shows the buffer mid-clear and flickers black every
+ * frame. `next_buf` is published by core 0 and picked up by core 1 at the top
+ * of a frame, so a swap never tears. */
+static uint8_t *volatile scan_buf = framebuf;
+static uint8_t *volatile next_buf = NULL;
+static uint8_t *draw_buf = backbuf;
+static volatile bool core1_running = false;
 struct dvi_inst dvi0;
 
 static uint32_t g_frame = 0;
@@ -728,15 +738,30 @@ void core1_main(void) {
     dvi_register_irqs_this_core(&dvi0, DMA_IRQ_0);
     dvi_start(&dvi0);
     while (1) {
+        /* Top of frame is the only safe moment to change buffers. */
+        if (next_buf) { scan_buf = next_buf; next_buf = NULL; }
+        const uint8_t *fb = scan_buf;
         for (uint y = 0; y < FRAME_HEIGHT; ++y) {
             uint32_t *t = 0;
             queue_remove_blocking_u32(&dvi0.q_tmds_free, &t);
             for (uint c = 0; c < 3; ++c)
-                tmds_encode_1bpp((const uint32_t *)&framebuf[y * FRAME_WIDTH / 8 + c * PLANE_SIZE_BYTES],
+                tmds_encode_1bpp((const uint32_t *)&fb[y * FRAME_WIDTH / 8 + c * PLANE_SIZE_BYTES],
                                  t + c * FRAME_WIDTH / DVI_SYMBOLS_PER_WORD, FRAME_WIDTH);
             queue_add_blocking_u32(&dvi0.q_tmds_valid, &t);
         }
     }
+}
+
+/* Publish the finished frame and take the buffer core 1 just released. */
+static void present(void) {
+    if (core1_running) {
+        next_buf = draw_buf;
+        while (next_buf != NULL) tight_loop_contents();
+    } else {
+        scan_buf = draw_buf;   /* nothing is scanning yet, swap outright */
+    }
+    draw_buf = (draw_buf == framebuf) ? backbuf : framebuf;
+    Paint_SelectImage(draw_buf);
 }
 
 int main(void) {
@@ -758,14 +783,16 @@ int main(void) {
     dvi0.timing = &DVI_TIMING;
     dvi0.ser_cfg = DVI_DEFAULT_SERIAL_CONFIG;
     dvi_init(&dvi0, next_striped_spin_lock_num(), next_striped_spin_lock_num());
-    Paint_NewImage(framebuf, FRAME_WIDTH, FRAME_HEIGHT, 0, SCALE3_BLACK);
+    Paint_NewImage(draw_buf, FRAME_WIDTH, FRAME_HEIGHT, 0, SCALE3_BLACK);
     Paint_SetScale(3);
 
     ionity_wifi_info_t w = ionity_wifi_get_info();
 
     if (w.state == IONITY_WIFI_AP_MODE) {
         draw_provisioning_screen();
+        present();
         multicore_launch_core1(core1_main);
+        core1_running = true;
         if (ionity_http_init(IONITY_HTTP_PORT))
             printf("HTTP on :%d (provisioning)\n", IONITY_HTTP_PORT);
         while (w.state == IONITY_WIFI_AP_MODE) {
@@ -778,7 +805,9 @@ int main(void) {
     }
 
     draw_splash();
+    present();
     multicore_launch_core1(core1_main);
+    core1_running = true;
     sleep_ms(1200);
 
     if (ionity_stream_init(IONITY_STREAM_PORT)) {
@@ -819,12 +848,12 @@ int main(void) {
 
         Paint_Clear(SCALE3_BLACK);
         ionity_scene_render();
-        ionity_mirror_tick(framebuf, FRAME_WIDTH, FRAME_HEIGHT);
+        present();
+        ionity_mirror_tick(scan_buf, FRAME_WIDTH, FRAME_HEIGHT);
 
         fps_cnt++;
         uint32_t n = to_ms_since_boot(get_absolute_time());
         if (n - fps_last >= 1000) { fps_value = fps_cnt; fps_cnt = 0; fps_last = n; }
         g_frame++;
-        sleep_ms(16);
     }
 }
