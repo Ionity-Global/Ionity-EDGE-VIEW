@@ -2,7 +2,23 @@
 
 **Raspberry Pi Pico 2W + Waveshare 10.1" DVI Display**
 
+[![Build](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/actions/workflows/build.yml/badge.svg)](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/actions/workflows/build.yml)
+[![Pages](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/actions/workflows/pages.yml/badge.svg)](https://ionity-global.github.io/Ionity-EDGE-VIEW/)
+[![Wiki](https://img.shields.io/badge/wiki-GitHub%20Wiki-blue)](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki)
+
 A custom firmware project that drives a Waveshare 10.1" IPS LCD panel via PIO-based DVI output from a Raspberry Pi Pico 2W (RP2350). Includes animated dashboards, WiFi connectivity, and a TCP stream server for remote control.
+
+## Documentation
+
+| Resource | Link |
+|----------|------|
+| **Project Page** | [ionity-global.github.io/Ionity-EDGE-VIEW](https://ionity-global.github.io/Ionity-EDGE-VIEW/) |
+| **Wiki** | [github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki) |
+| **Getting Started** | [Wiki: Getting Started](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki/Getting-Started) |
+| **Build System** | [Wiki: Build System](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki/Build-System) |
+| **Stream Protocol** | [Wiki: Stream Protocol](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki/Stream-Protocol) |
+| **Hardware Setup** | [Wiki: Hardware Setup](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki/Hardware-Setup) |
+| **Demo Reference** | [Wiki: Demo Reference](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki/Demo-Reference) |
 
 ## Hardware
 
@@ -116,6 +132,18 @@ The Pico runs a TCP server on port 4242. Send JSON commands to control the dashb
 {"type":"sprite",0,100,200,2,2}
 {"type":"reboot"}
 ```
+
+## Bridge Server (`server_app`)
+
+A lightweight Python HTTPS bridge server that proxies messages from any device on your WiFi to the Pico display.
+
+```bash
+cd server_app
+pip install -r requirements.txt
+python server.py --pico-ip <pico-ip>
+```
+
+The server generates a self-signed certificate and serves a web UI to send commands to the Pico without needing `nc` or a terminal.
 
 ## WiFi Credentials
 
