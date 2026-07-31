@@ -103,8 +103,6 @@ static void draw_marquee(void) {
         int text_len = strlen(marquee_text);
         marquee_text_width = text_len * 8;  /* ~8px per char for Font12 */
 
-        int x = 40 - marquee_offset;
-        int max_x = FRAME_WIDTH - 10;
         int clip_start = 45;
 
         /* Draw visible portion */
@@ -235,14 +233,9 @@ int main(void) {
 
     printf("Station Pico - IO-nity SDK starting...\n");
 
-    /* ---- Set DVI clock FIRST (252 MHz) ---- *
-     * Must happen before WiFi init so the CYW43 PIO
-     * clock divider is calculated for the final
-     * system clock frequency.                   */
-    set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
-    printf("System clock: %d MHz\n", (int)(DVI_TIMING.bit_clk_khz / 1000));
-
-    /* ---- WiFi init at 252 MHz ---- */
+    /* ---- WiFi init at default 125 MHz clock ---- *
+     * Must happen BEFORE set_sys_clock_khz() because
+     * the CYW43 SPI can't communicate at 252 MHz.  */
     printf("Initializing WiFi...\n");
     if (ionity_wifi_init()) {
         printf("WiFi driver OK. Connecting to %s...\n", IONITY_WIFI_SSID);
@@ -257,6 +250,28 @@ int main(void) {
         printf("WiFi init FAILED.\n");
     }
 
+    /* ---- Switch to DVI clock (252 MHz) ---- */
+    set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
+    printf("System clock: %d MHz\n", (int)(DVI_TIMING.bit_clk_khz / 1000));
+
+    /* ---- DVI init ---- */
+    dvi0.timing = &DVI_TIMING;
+    dvi0.ser_cfg = DVI_DEFAULT_SERIAL_CONFIG;
+    dvi_init(&dvi0, next_striped_spin_lock_num(), next_striped_spin_lock_num());
+
+    Paint_NewImage(framebuf, FRAME_WIDTH, FRAME_HEIGHT, 0, SCALE3_BLACK);
+    Paint_SetScale(3);
+
+    /* Draw boot screen */
+    Paint_Clear(SCALE3_BLACK);
+    ionity_draw_header(FRAME_WIDTH, "Booting...");
+    Paint_DrawString_EN(150, 100, "IO-NITY STATION PICO", &Font24, SCALE3_RED, SCALE3_BLACK);
+    Paint_DrawString_EN(180, 160, "SDK-Ionity v1.0", &Font16, SCALE3_WHITE, SCALE3_BLACK);
+    ionity_draw_footer(FRAME_WIDTH, FRAME_HEIGHT, "Pico 2W RP2350", "Starting...");
+
+    /* Launch DVI on core 1 */
+    multicore_launch_core1(core1_main);
+
     /* ---- TCP stream server (port 4242) ---- */
     if (ionity_stream_init(IONITY_STREAM_PORT)) {
         printf("Stream server on port %d\n", IONITY_STREAM_PORT);
@@ -268,17 +283,6 @@ int main(void) {
         printf("HTTP server on port %d\n", IONITY_HTTP_PORT);
         ionity_http_set_msg_handler(handle_http_message);
     }
-
-    /* ---- DVI init ---- */
-    dvi0.timing = &DVI_TIMING;
-    dvi0.ser_cfg = DVI_DEFAULT_SERIAL_CONFIG;
-    dvi_init(&dvi0, next_striped_spin_lock_num(), next_striped_spin_lock_num());
-
-    Paint_NewImage(framebuf, FRAME_WIDTH, FRAME_HEIGHT, 0, SCALE3_BLACK);
-    Paint_SetScale(3);
-
-    /* ---- Launch DVI on core 1 ---- */
-    multicore_launch_core1(core1_main);
 
     uint32_t frame = 0;
     while (true) {
