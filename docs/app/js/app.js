@@ -72,6 +72,11 @@ bridge.events.addEventListener('bridge', (e) => {
   const { online, info, error } = e.detail;
   sentinel.bridgeOnline = online;
   pill('pillBridge', online ? 'on' : 'err', online ? 'Bridge online' : 'Bridge offline');
+
+  // Say it once, loudly, instead of letting every button fail in silence.
+  document.body.classList.toggle('offline', !online);
+  $('offlineBanner').hidden = online;
+
   const s = $('serverState');
   if (online) {
     s.className = 'state ok';
@@ -170,7 +175,7 @@ $('btnPair').onclick = async () => {
 $('btnProbe').onclick = () => bridge.probe();
 $('btnDetach').onclick = () => { bridge.token = ''; bridge.stop(); $('tokenInput').value = ''; pill('pillBridge', 'off', 'Unpaired'); };
 
-$('btnStartServer').onclick = async () => {
+async function startServer() {
   // Studio registers the edgeview: scheme at install time; if it is not there
   // the browser silently does nothing, so fall back to the download page.
   const before = Date.now();
@@ -182,7 +187,11 @@ $('btnStartServer').onclick = async () => {
       $('serverState').textContent = 'Could not launch the server from the browser — install it from the download button, then start the bridge in Studio.';
     }
   }, 2500);
-};
+}
+
+$('btnStartServer').onclick = startServer;
+$('btnBannerStart').onclick = startServer;
+$('btnBannerRetry').onclick = () => bridge.probe();
 
 $('btnFeeds').onclick = async () => {
   const on = !$('btnFeeds').textContent.includes('on');

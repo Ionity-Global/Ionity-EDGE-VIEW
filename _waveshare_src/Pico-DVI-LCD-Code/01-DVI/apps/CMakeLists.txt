@@ -1,3 +1,9 @@
-# EDGE-VIEW only. The old demo apps still live in this folder for reference;
-# add them back here if you need one.
+# All buildable targets. EDGE-VIEW is the flagship; the demos are what the
+# installer app, StationPico.ps1 and CI offer, so they must stay in the build.
 add_subdirectory(edgeview)
+add_subdirectory(demo_colors)
+add_subdirectory(demo_bounce)
+add_subdirectory(demo_sysinfo)
+add_subdirectory(demo_rainbow)
+add_subdirectory(gui_demo)
+add_subdirectory(hello_dvi)

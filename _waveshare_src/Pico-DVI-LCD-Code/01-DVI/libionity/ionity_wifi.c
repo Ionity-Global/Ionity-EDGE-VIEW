@@ -128,6 +128,44 @@ bool ionity_wifi_init(void) {
     return true;
 }
 
+bool ionity_wifi_begin(void) {
+    memset(&wifi_info, 0, sizeof(wifi_info));
+    wifi_info.state = IONITY_WIFI_DISCONNECTED;
+
+    if (cyw43_arch_init_with_country(IONITY_WIFI_COUNTRY)) {
+        wifi_info.state = IONITY_WIFI_ERROR;
+        printf("[wifi] driver init failed\n");
+        return false;
+    }
+    cyw43_arch_enable_sta_mode();
+
+    char ssid[33] = "", pass[65] = "";
+    if (ionity_wifi_has_saved_creds())
+        ionity_wifi_load_creds(ssid, sizeof(ssid), pass, sizeof(pass));
+#if defined(IONITY_WIFI_SSID)
+    if (ssid[0] == '\0') {
+        snprintf(ssid, sizeof(ssid), "%s", IONITY_WIFI_SSID);
+        snprintf(pass, sizeof(pass), "%s", IONITY_WIFI_PASS);
+    }
+#endif
+    if (ssid[0] == '\0') {
+        printf("[wifi] no credentials\n");
+        return false;
+    }
+
+    snprintf(wifi_info.ssid, sizeof(wifi_info.ssid), "%s", ssid);
+    snprintf(active_ssid, sizeof(active_ssid), "%s", ssid);
+    snprintf(active_pass, sizeof(active_pass), "%s", pass);
+    connect_start = get_absolute_time();
+    last_reconnect_ms = to_ms_since_boot(get_absolute_time());
+    wifi_info.state = IONITY_WIFI_CONNECTING;
+
+    /* Async so the display can come up now; ionity_wifi_poll() finishes the join. */
+    cyw43_arch_wifi_connect_async(ssid, pass, CYW43_AUTH_WPA2_MIXED_PSK);
+    printf("[wifi] joining '%s' in the background\n", ssid);
+    return true;
+}
+
 bool ionity_wifi_connect(const char *ssid, const char *password) {
     if (wifi_info.state == IONITY_WIFI_ERROR) return false;
 

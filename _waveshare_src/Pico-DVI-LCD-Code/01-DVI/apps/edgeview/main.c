@@ -756,7 +756,16 @@ void core1_main(void) {
 static void present(void) {
     if (core1_running) {
         next_buf = draw_buf;
-        while (next_buf != NULL) tight_loop_contents();
+        /* Bounded: if core 1 ever stalls, carry on rendering rather than
+         * hanging the whole device, network included. */
+        uint32_t deadline = to_ms_since_boot(get_absolute_time()) + 100;
+        while (next_buf != NULL) {
+            if (to_ms_since_boot(get_absolute_time()) > deadline) {
+                next_buf = NULL;      /* reclaim; core 1 keeps its old buffer */
+                return;
+            }
+            tight_loop_contents();
+        }
     } else {
         scan_buf = draw_buf;   /* nothing is scanning yet, swap outright */
     }
@@ -766,7 +775,10 @@ static void present(void) {
 
 int main(void) {
     vreg_set_voltage(VREG_VSEL); sleep_ms(10);
-    setup_default_uart();
+    stdio_init_all();
+    /* USB CDC needs a moment to enumerate before the first line is worth
+     * anything, and the boot log is the only view into a dead screen. */
+    sleep_ms(2500);
     printf("IO-nity EDGE-VIEW v2.1 (server-driven)\n");
 
     ionity_data_init();
@@ -775,7 +787,11 @@ int main(void) {
     apply_default_layout();
 
     printf("WiFi...\n");
-    if (!ionity_wifi_init()) printf("WiFi init FAILED\n");
+    bool have_creds = ionity_wifi_begin();
+    if (!have_creds) {
+        printf("No credentials — starting provisioning AP\n");
+        ionity_wifi_start_ap();
+    }
 
     set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
     printf("Clock: %d MHz\n", (int)(DVI_TIMING.bit_clk_khz / 1000));
@@ -831,7 +847,11 @@ int main(void) {
 
     ionity_game_set_mode(IONITY_GAME_PACMAN);
 
-    printf("IP: %s\nReady. Open http://%s\n", w.ip_addr, w.ip_addr);
+    bool ap_fallback_done = false;
+
+    /* The join is still in flight here, so there is no IP to print yet — the
+     * heartbeat below reports it once ionity_wifi_poll() completes the join. */
+    printf("Ready. Waiting for WiFi...\n");
 
     while (1) {
         ionity_wifi_poll();
@@ -846,6 +866,15 @@ int main(void) {
             net_services_up = true;
         }
 
+        /* If the network never comes up, fall back to the provisioning AP so the
+         * screen becomes useful instead of sitting on CONNECTING forever. */
+        if (!net_services_up && !ap_fallback_done &&
+            to_ms_since_boot(get_absolute_time()) > 45000) {
+            ap_fallback_done = true;
+            printf("[wifi] join failed for 45s - starting provisioning AP\n");
+            ionity_wifi_start_ap();
+        }
+
         Paint_Clear(SCALE3_BLACK);
         ionity_scene_render();
         present();
@@ -853,7 +882,15 @@ int main(void) {
 
         fps_cnt++;
         uint32_t n = to_ms_since_boot(get_absolute_time());
-        if (n - fps_last >= 1000) { fps_value = fps_cnt; fps_cnt = 0; fps_last = n; }
+        if (n - fps_last >= 1000) {
+            fps_value = fps_cnt; fps_cnt = 0; fps_last = n;
+            /* The only view into a dead screen: proves the loop is alive and
+             * says where WiFi has got to. */
+            ionity_wifi_info_t hw = ionity_wifi_get_info();
+            printf("[hb] up=%lus fps=%u wifi=%d ssid='%s' ip=%s\n",
+                   (unsigned long)(n / 1000), fps_value, (int)hw.state,
+                   hw.ssid, hw.ip_addr[0] ? hw.ip_addr : "-");
+        }
         g_frame++;
     }
 }

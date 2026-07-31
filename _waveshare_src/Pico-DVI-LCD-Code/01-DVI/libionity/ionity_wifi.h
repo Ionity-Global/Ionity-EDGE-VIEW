@@ -36,6 +36,11 @@ bool ionity_wifi_connect_default(void);
 /* Start AP mode for provisioning. */
 void ionity_wifi_start_ap(void);
 
+/* Brings up the driver and starts joining without blocking, so the caller can
+ * get the display running immediately. ionity_wifi_poll() completes the join.
+ * Returns false when there are no credentials — start the AP instead. */
+bool ionity_wifi_begin(void);
+
 /* Save credentials to flash. */
 bool ionity_wifi_save_creds(const char *ssid, const char *password);
 

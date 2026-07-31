@@ -27,3 +27,8 @@ target_link_libraries(edgeview
 )
 
 pico_add_extra_outputs(edgeview)
+
+# Boot log over the USB cable. Without this the board is silent and a failure
+# before the display comes up is invisible.
+pico_enable_stdio_usb(edgeview 1)
+pico_enable_stdio_uart(edgeview 1)

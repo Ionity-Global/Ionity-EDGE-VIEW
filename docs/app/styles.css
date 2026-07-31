@@ -167,6 +167,33 @@ progress { width: 100%; height: 6px; accent-color: var(--red); background: #0f0f
 .list li { cursor: pointer; }
 .list li:hover { color: var(--cyan); }
 
+/* ── offline state ── */
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  background: linear-gradient(90deg, #3a0d18, #2a0b12);
+  border-bottom: 1px solid var(--red);
+  font-size: 13.5px;
+  color: #ffd9e0;
+}
+.offline-banner b { color: var(--red); }
+.offline-banner span { color: #c9a8b2; }
+.offline-banner button, .offline-banner .btn { padding: 6px 12px; font-size: 13px; }
+
+/* Anything that needs the server says so instead of failing silently. */
+body.offline .needs-server {
+  opacity: 0.4;
+  pointer-events: none;
+  filter: grayscale(0.6);
+}
+body.offline .card { position: relative; }
+
 /* ── live view ── */
 .view .screen {
   position: relative;

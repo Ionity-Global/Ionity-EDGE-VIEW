@@ -13,6 +13,14 @@
 
 <canvas id="bgfx" aria-hidden="true"></canvas>
 
+<div class="offline-banner" id="offlineBanner" hidden>
+  <b>No server.</b>
+  <span>Nothing on this page can reach the display until EDGE-VIEW is running.</span>
+  <button id="btnBannerStart" class="primary">Start EDGE-VIEW</button>
+  <a class="btn" href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/releases/latest" target="_blank" rel="noopener">Download</a>
+  <button id="btnBannerRetry" class="ghost">Retry</button>
+</div>
+
 <header class="topbar">
   <div class="brand">
     <img class="mark" src="img/ionity.png" alt="Ionity Global" />
@@ -72,7 +80,7 @@
   </section>
 
   <!-- ─────────── Device power ─────────── -->
-  <section class="card" id="cardDevice">
+  <section class="card needs-server" id="cardDevice">
     <h2>② Device</h2>
     <div class="row">
       <input id="ipInput" placeholder="192.168.1.100" />
@@ -132,7 +140,7 @@
   </section>
 
   <!-- ─────────── WiFi provisioning ─────────── -->
-  <section class="card" id="cardWifi">
+  <section class="card needs-server" id="cardWifi">
     <h2>⑤ WiFi</h2>
     <p class="hint">Move the display to another network without touching it. It saves and reboots.</p>
     <div class="row"><input id="ssidInput" placeholder="SSID" maxlength="32" /></div>
@@ -145,7 +153,7 @@
   </section>
 
   <!-- ─────────── Scene ─────────── -->
-  <section class="card" id="cardScene">
+  <section class="card needs-server" id="cardScene">
     <h2>⑥ Scene</h2>
     <div id="slotGrid" class="slots"></div>
     <div class="row wrap small">
@@ -155,7 +163,7 @@
   </section>
 
   <!-- ─────────── AI ─────────── -->
-  <section class="card span2" id="cardAi">
+  <section class="card span2 needs-server" id="cardAi">
     <h2>⑦ Ionity AI <span class="chip" id="brainChip">brain: ?</span></h2>
 
     <div class="chatlog" id="chatLog"></div>
