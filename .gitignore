@@ -11,6 +11,17 @@ _build/
 *.map
 *.dis
 
+# .NET
+bin/
+obj/
+dist/
+*.user
+*.suo
+.vs/
+
+# Published firmware images the web console serves (CI produces these)
+docs/app/firmware/*.uf2
+
 # SDK (downloaded toolchain)
 .sdk/
 
@@ -39,3 +50,6 @@ build.ninja
 .ninja_*
 compile_commands.json
 _deps/
+
+# WiFi credentials (local config, not pushed to public repo)
+wifi_config.cmake

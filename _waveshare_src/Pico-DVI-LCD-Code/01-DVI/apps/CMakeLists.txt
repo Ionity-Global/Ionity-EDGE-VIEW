@@ -1,8 +1,3 @@
-add_subdirectory(hello_dvi)
-add_subdirectory(gui_demo)
-add_subdirectory(station_demo)
-add_subdirectory(demo_colors)
-add_subdirectory(demo_bounce)
-add_subdirectory(demo_sysinfo)
-add_subdirectory(demo_rainbow)
-add_subdirectory(wifi_demo)
+# EDGE-VIEW only. The old demo apps still live in this folder for reference;
+# add them back here if you need one.
+add_subdirectory(edgeview)

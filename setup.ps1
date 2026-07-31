@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Station Pico - Automated Setup Script
 .DESCRIPTION
@@ -108,12 +108,12 @@ if (Test-Path (Join-Path $srcDir "CMakeLists.txt")) {
 
 # ── Step 5: Add Station Pico demo ────────────────────────────────────────────
 Write-Step "Station Pico custom demo..."
-$demoDir = Join-Path $srcDir "apps\station_demo"
+$demoDir = Join-Path $srcDir "apps\edgeview"
 if (-not (Test-Path (Join-Path $demoDir "main.c"))) {
     New-Item -ItemType Directory -Path $demoDir -Force | Out-Null
     Write-Host "   Demo source will be created during first build" -ForegroundColor Gray
 }
-Write-OK "station_demo registered"
+Write-OK "edgeview registered"
 
 # ── Step 6: Verify Ninja is available ───────────────────────────────────────
 Write-Step "Checking build tools..."
@@ -169,13 +169,13 @@ if (-not $SkipBuild) {
         Write-Err "CMake configuration failed"
     }
 
-    Write-Host "   Compiling station_demo..." -ForegroundColor Gray
+    Write-Host "   Compiling edgeview..." -ForegroundColor Gray
     $jobs = [System.Environment]::ProcessorCount
     if (Test-Path $vcvarsBat) {
-        $buildCmd = "cd /d ""$buildDir"" && call ""$vcvarsBat"" x64 >nul 2>&1 && cmake --build . --target station_demo -- -j $jobs"
+        $buildCmd = "cd /d ""$buildDir"" && call ""$vcvarsBat"" x64 >nul 2>&1 && cmake --build . --target edgeview -- -j $jobs"
         cmd /c $buildCmd
     } else {
-        cmake --build . --target station_demo -- -j $jobs
+        cmake --build . --target edgeview -- -j $jobs
     }
     if ($LASTEXITCODE -ne 0) {
         Pop-Location
@@ -188,7 +188,7 @@ if (-not $SkipBuild) {
 # ── Step 9: Flash to Pico ───────────────────────────────────────────────────
 if (-not $SkipFlash -and $picoDrive) {
     Write-Step "Flashing firmware to Pico..."
-    $uf2File = Join-Path $srcDir "build_rp2350\apps\station_demo\station_demo.uf2"
+    $uf2File = Join-Path $srcDir "build_rp2350\apps\edgeview\edgeview.uf2"
     if (Test-Path $uf2File) {
         Copy-Item -Path $uf2File -Destination "${picoLetter}:\" -Force
         Write-OK "Firmware flashed! Pico will reboot and start the demo."
@@ -209,7 +209,7 @@ Write-Host "  Source:   $srcDir"
 Write-Host "  Build:    $(Join-Path $srcDir 'build_rp2350')"
 Write-Host ""
 Write-Host " Quick commands:" -ForegroundColor Yellow
-Write-Host "   .\build.ps1                    # Rebuild station_demo"
+Write-Host "   .\build.ps1                    # Rebuild edgeview"
 Write-Host "   .\build.ps1 -Flash             # Build and flash"
 Write-Host "   .\build.ps1 -Target gui_demo   # Build Waveshare GUI demo"
 Write-Host ""

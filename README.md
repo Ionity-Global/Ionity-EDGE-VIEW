@@ -1,8 +1,31 @@
-# Station Pico
+# IO-nity EDGE-VIEW
 
-**Raspberry Pi Pico 2W + Waveshare 10.1" DVI Display**
+**Raspberry Pi Pico 2W + Waveshare 10.1" DVI display, driven from a server over WiFi.**
 
-A custom firmware project that drives a Waveshare 10.1" IPS LCD panel via PIO-based DVI output from a Raspberry Pi Pico 2W (RP2350). Includes animated dashboards, WiFi connectivity, and a TCP stream server for remote control.
+The Pico is a *renderer*, not the brain. EDGE-VIEW Studio (a Windows app) fetches
+the clock, weather, scripture and AI headlines, then streams them as key/value
+data into named screen slots. The layout itself is interchangeable at runtime —
+any panel can be moved to any slot over the wire, with no reflash. If the server
+goes away, the device falls back to what it can work out on its own.
+
+```mermaid
+flowchart LR
+    W["Web Console<br/>GitHub Pages"] <-->|REST + SSE<br/>127.0.0.1:8787| S["EDGE-VIEW Studio<br/>feeds + bridge"]
+    W -->|WebUSB PICOBOOT| P["Pico 2W<br/>10.1in DVI panel"]
+    S -->|TCP 4242 JSON| P
+    S -->|HTTP 80| P
+    P -.->|UDP 4243 beacon| S
+    N["NTP / Open-Meteo"] --> P
+    F["RSS / Heartlight / Open-Meteo"] --> S
+```
+
+## Three ways in
+
+| Surface | What it is | Where |
+|---|---|---|
+| **Web Console** | Browser control surface: reset, reflash over USB, live WiFi stream, scene editor, AI | [`docs/app/`](docs/app) → GitHub Pages `/app/` |
+| **EDGE-VIEW Studio** | The server. Toolchain installer, feed scheduler, device control, message board, bridge | [`StationPicoInstaller/`](StationPicoInstaller) |
+| **Device HTTP** | The Pico's own page and message board, QR-linked from the screen | `http://<pico-ip>/` |
 
 ## Hardware
 
@@ -10,116 +33,113 @@ A custom firmware project that drives a Waveshare 10.1" IPS LCD panel via PIO-ba
 |-----------|---------|
 | **MCU** | Raspberry Pi Pico 2W (RP2350, dual Cortex-M33) |
 | **Display** | Waveshare 10.1" IPS LCD with DVI input (PICO-DVI-10.1") |
-| **Video** | DVI via PIO TMDS, 640x480p60, 3-bit RGB (8 colors) |
-| **WiFi** | CYW43439 (2.4 GHz, included on Pico 2W) |
-| **Power** | Pico via micro-USB; Display board via USB-C (5V/2A+) |
+| **Video** | DVI via PIO TMDS, 640×480p60, 3-bit RGB (8 colours) |
+| **WiFi** | CYW43439 (2.4 GHz, on the Pico 2W) |
+| **Power** | Pico via micro-USB; display board via USB-C (5 V / 2 A+) |
 
 ### Wiring
 
 | Pico GPIO | Signal |
 |-----------|--------|
-| GPIO 8 | DVI Clock |
-| GPIO 10 | TMDS D0 (Blue) |
-| GPIO 12 | TMDS D1 (Green) |
-| GPIO 14 | TMDS D2 (Red) |
+| GPIO 8 | DVI clock |
+| GPIO 10 | TMDS D0 (blue) |
+| GPIO 12 | TMDS D1 (green) |
+| GPIO 14 | TMDS D2 (red) |
 
-## Demos
+## Apps
 
-| Demo | Description |
-|------|-------------|
-| `station_demo` | Animated dashboard with info panels, sprites, WiFi status, weather, AI stream |
-| `demo_colors` | Cycles through all 8 display colors |
-| `demo_bounce` | 12 animated balls bouncing off walls |
+| Target | Description |
+|--------|-------------|
+| `edgeview` | The flagship: server-driven scene engine, WiFi, NTP, weather, games, verse, QR, news |
+| `demo_colors` | Cycles the 8 display colours |
+| `demo_bounce` | 12 animated balls |
 | `demo_sysinfo` | Hardware specs and diagnostics |
-| `demo_rainbow` | Animated rainbow gradient sweep |
-| `gui_demo` | Waveshare drawing primitives demo |
-| `hello_dvi` | Scrolling test pattern image |
+| `demo_rainbow` | Animated gradient sweep |
+| `gui_demo` | Waveshare drawing primitives |
+| `hello_dvi` | Scrolling test pattern |
 
-## Quick Start
+## Scene engine
+
+Ten fixed slots, sixteen panels, bound at runtime:
+
+**Slots** `header` `info_a` `info_b` `info_c` `stage` `side` `marquee` `ticker` `stats` `footer`
+
+**Panels** `header` `clock` `network` `feed` `weather` `game` `verse` `qr` `rotate` `text` `logo` `marquee` `news` `stats` `footer` `blank`
+
+```json
+{"type":"layout","slot":"stage","panel":"clock"}
+{"type":"data","key":"hdr.title","value":"IO-NITY EDGE-VIEW"}
+{"type":"query","what":"layout"}
+{"type":"wifi","ssid":"NewNetwork","pass":"secret"}
+```
+
+Values go stale after five minutes, at which point each panel falls back to its
+local source. Full command list in [Stream Protocol](docs/wiki/Stream-Protocol.md).
+
+## Quick start
 
 ### Prerequisites
 
-- Windows 10/11
-- Git
-- CMake (3.12+)
-- Ninja build system
-- ARM GCC toolchain (automatically downloaded)
-- Visual Studio Build Tools 2022 (MSVC for host tools)
+Windows 10/11 · Git · CMake 3.12+ · Ninja · Visual Studio Build Tools 2022 (host tools).
+The ARM GCC toolchain and Pico SDK are downloaded for you.
 
-### One-command setup
+### Setup, build, flash
 
 ```powershell
-.\StationPico.ps1 -Action setup
-```
-
-This downloads ARM GCC, the Pico SDK, and Waveshare source code into `.sdk\` and `_waveshare_src\`.
-
-### Build & flash
-
-```powershell
-# Interactive menu
-.\StationPico.ps1
-
-# Build a specific demo
-.\StationPico.ps1 -Action build -Target station_demo
-
-# Build and flash in one step
-.\StationPico.ps1 -Action buildflash -Target demo_rainbow
-
-# Check system status
+.\StationPico.ps1 -Action setup                       # one-time: SDK + toolchain
+.\StationPico.ps1 -Action build -Target edgeview
+.\StationPico.ps1 -Action buildflash -Target edgeview
 .\StationPico.ps1 -Action status
 ```
 
-### Enter BOOTSEL mode
+Or skip the shell entirely: hold **BOOTSEL**, plug the Pico in, open the web
+console and press **Flash over USB**. It speaks PICOBOOT straight from Chrome.
 
-1. Hold the **BOOTSEL** button on the Pico 2W
-2. Press and release **RESET**
-3. Release BOOTSEL
-4. The Pico appears as a mass storage drive labeled `RP2350`
+### Enter BOOTSEL
 
-## Build System
+Hold **BOOTSEL**, press and release **RESET**, release BOOTSEL. The board
+appears as a drive named `RP2350`.
 
-The project uses **CMake + Ninja** with the Pico SDK 2.1.1. The build scripts:
+## Build system
 
-- `StationPico.ps1` — Main management tool (menu, setup, build, flash, status)
-- `build_native.bat` — Low-level CMake build (MSVC + ARM GCC)
-- `build.ps1` — PowerShell equivalent with additional options
-- `flash.bat` — Quick build + flash wrapper
-- `rebuild.bat` — Clean rebuild of station_demo
-- `setup.bat` / `setup.ps1` — First-time dependency installation
+CMake + Ninja against Pico SDK 2.1.1.
 
-## Architecture
+- `StationPico.ps1` — menu, setup, build, flash, status
+- `build_native.bat` — low-level CMake build (MSVC + ARM GCC)
+- `build.ps1` — PowerShell equivalent with extra options
+- `flash.bat` — build + flash wrapper
+- `rebuild.bat` — clean rebuild of `edgeview`
+- `setup.bat` / `setup.ps1` — first-time dependency install
+
+CI builds every target on push and publishes the UF2s to GitHub Pages, so the
+web console can always flash the latest `master`.
+
+## Layout
 
 ```
-libionity/       SDK-Ionity custom library
-├── ionity_wifi.c/h    WiFi provisioning and management
-├── ionity_stream.c/h  TCP stream server for remote commands
-├── ionity_pixels.c/h  Pixel-level drawing utilities
-└── ionity_brand.c/h   Branding, header/footer, panels
+libionity/          SDK-Ionity
+├── ionity_wifi     provisioning, saved credentials, remote reprovisioning
+├── ionity_stream   TCP 4242 command server
+├── ionity_data     server-streamed key/value store (32 slots, 5 min staleness)
+├── ionity_scene    slot/panel registry — the interchangeable layer
+├── ionity_http     HTTP 80 page + message board
+├── ionity_pixels   drawing helpers
+└── ionity_brand    header, footer, panel chrome
 
-libdvi/          DVI/TMDS encoding library (PIO-based)
-libgui/          GUI drawing library (Waveshare)
-libsprite/       Sprite rendering library
+libdvi/             DVI/TMDS encoding (PIO)
+libgui/             Waveshare drawing primitives
+libsprite/          sprite rendering
 
-apps/            Application demos
-└── station_demo/    Main dashboard application
+apps/edgeview/      the flagship app
+StationPicoInstaller/  EDGE-VIEW Studio (.NET MAUI) — the server
+docs/app/           the web console
+server_app/         deprecated Python bridge, superseded by Studio
 ```
 
-## Stream Protocol
+## WiFi
 
-The Pico runs a TCP server on port 4242. Send JSON commands to control the dashboard:
-
-```json
-{"type":"ping"}
-{"type":"weather","temp":25,"cond":1}
-{"type":"text","text":"Hello from AI"}
-{"type":"sprite",0,100,200,2,2}
-{"type":"reboot"}
-```
-
-## WiFi Credentials
-
-WiFi SSID and password are compiled into the firmware at build time via `libionity/CMakeLists.txt`. Edit these values or configure them via environment variables:
+Compiled in at build time, or provisioned on screen at first boot, or pushed
+remotely from Studio / the console:
 
 ```cmake
 target_compile_definitions(libionity INTERFACE
@@ -129,8 +149,16 @@ target_compile_definitions(libionity INTERFACE
 )
 ```
 
-## License
+## Not supported
 
-SDK-Ionity custom code — proprietary.
-Waveshare PICO-DVI-LCD-Code — see Waveshare documentation.
-Pico SDK — BSD 3-Clause (Raspberry Pi Ltd).
+**Brightness.** The panel drives its own backlight over DVI and the framebuffer
+is 3-bit RGB — eight colours, no intermediate levels. There is nothing to dim in
+software. Use the monitor's controls.
+
+## Licence
+
+Code: MIT — see [LICENSE](LICENSE).
+Trademarks, third-party components and data sources: see [NOTICE](NOTICE).
+
+Ionity Global (Pty) Ltd is not affiliated with IONITY GmbH, the European EV
+charging network.

@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [station_demo, demo_colors, demo_bounce, demo_sysinfo, demo_rainbow, gui_demo, hello_dvi]
+        target: [edgeview, demo_colors, demo_bounce, demo_sysinfo, demo_rainbow, gui_demo, hello_dvi]
 
     steps:
       - name: Checkout

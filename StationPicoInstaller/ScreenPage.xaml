@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="StationPicoInstaller.ScreenPage"
+             BackgroundColor="#1a1a2e">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30,20" Spacing="12">
+
+            <Label Text="🖥 Screen Composer"
+                   FontSize="28" FontAttributes="Bold"
+                   TextColor="#e94560" HorizontalOptions="Center" />
+            <Label Text="The device is a renderer — this app decides what it shows."
+                   FontSize="14" TextColor="#888" HorizontalOptions="Center" />
+
+            <BoxView HeightRequest="1" Color="#333" Margin="0,5" />
+
+            <!-- Layout -->
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Slot bindings" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Label Text="Any panel can go in any slot. Changes apply live."
+                           FontSize="12" TextColor="#888" />
+                    <VerticalStackLayout x:Name="SlotList" Spacing="6" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Grid.Column="0" Text="📥 Read from device" Clicked="OnQueryClicked"
+                                BackgroundColor="#0f3460" TextColor="#eee" />
+                        <Button Grid.Column="1" Text="📤 Apply all" Clicked="OnApplyAllClicked"
+                                BackgroundColor="#e94560" TextColor="White" FontAttributes="Bold" />
+                        <Button Grid.Column="2" Text="↩ Default layout" Clicked="OnDefaultLayoutClicked"
+                                BackgroundColor="#0f3460" TextColor="#eee" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Data push -->
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Stream a value" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Label Text="Panels read these keys: hdr.title, hdr.sub, clock, date, wx.temp, wx.cond, wx.place, verse.text, verse.ref, marquee, text.title, text.body, foot.left"
+                           FontSize="11" TextColor="#888" />
+                    <Grid ColumnDefinitions="2*,3*,Auto" ColumnSpacing="8">
+                        <Entry Grid.Column="0" x:Name="KeyEntry" Placeholder="key"
+                               PlaceholderColor="#666" TextColor="#eee" BackgroundColor="#0f3460" />
+                        <Entry Grid.Column="1" x:Name="ValueEntry" Placeholder="value"
+                               PlaceholderColor="#666" TextColor="#eee" BackgroundColor="#0f3460" />
+                        <Button Grid.Column="2" Text="Send" Clicked="OnSendDataClicked"
+                                BackgroundColor="#e94560" TextColor="White" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Remote WiFi -->
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#e94560">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Remote WiFi reprovisioning" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Label Text="Moves the device to a different network without touching it. The device saves the credentials and reboots."
+                           FontSize="12" TextColor="#888" />
+                    <Entry x:Name="SsidEntry" Placeholder="New SSID" MaxLength="32"
+                           PlaceholderColor="#666" TextColor="#eee" BackgroundColor="#0f3460" />
+                    <Entry x:Name="PassEntry" Placeholder="New password" IsPassword="True" MaxLength="63"
+                           PlaceholderColor="#666" TextColor="#eee" BackgroundColor="#0f3460" />
+                    <Button x:Name="WifiBtn" Text="📶 Move device to this network" Clicked="OnSetWifiClicked"
+                            BackgroundColor="#e94560" TextColor="White" FontAttributes="Bold" />
+                    <Button x:Name="WifiResetBtn" Text="🧹 Forget saved WiFi" Clicked="OnResetWifiClicked"
+                            BackgroundColor="#0f3460" TextColor="#ff8fa3" />
+                    <Label Text="Forget erases the stored credentials. The device reboots onto its build-time network, or shows the provisioning screen if it has none."
+                           FontSize="11" TextColor="#888" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Log -->
+            <Frame BackgroundColor="#0a0a0f" CornerRadius="8" Padding="10" BorderColor="#0f3460">
+                <Label x:Name="LogLabel" Text="Ready." TextColor="#44ff44"
+                       FontFamily="Consolas" FontSize="12" LineBreakMode="WordWrap" />
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

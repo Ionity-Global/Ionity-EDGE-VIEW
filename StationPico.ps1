@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Station Pico - Complete Management Tool
 .DESCRIPTION
@@ -8,7 +8,7 @@
     .\StationPico.ps1                  # Interactive menu
     .\StationPico.ps1 -Action setup    # Auto-install all dependencies
     .\StationPico.ps1 -Action build -Target demo_rainbow
-    .\StationPico.ps1 -Action flash -Target station_demo
+    .\StationPico.ps1 -Action flash -Target edgeview
     .\StationPico.ps1 -Action status   # Show system status
 #>
 
@@ -33,7 +33,7 @@ $vcvarsPath  = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\
 
 # ── Available demos ──────────────────────────────────────────────────────────
 $demos = @(
-    @{ Name = "station_demo";  Desc = "Station Pico - Animated dashboard with info panels" },
+    @{ Name = "edgeview";  Desc = "Station Pico - Animated dashboard with info panels" },
     @{ Name = "demo_colors";   Desc = "Color Test - Cycles through all 8 display colors" },
     @{ Name = "demo_bounce";   Desc = "Bounce - 12 animated balls bouncing off walls" },
     @{ Name = "demo_sysinfo";  Desc = "System Info - Hardware specs and diagnostics" },
@@ -264,7 +264,7 @@ function Invoke-Flash {
     }
 
     if (-not $demoName) {
-        $demoName = "station_demo"
+        $demoName = "edgeview"
     }
 
     $uf2 = Join-Path $buildDir "apps\$demoName\$demoName.uf2"

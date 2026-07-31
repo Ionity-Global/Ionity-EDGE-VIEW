@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="StationPicoInstaller.FeedsPage"
+             BackgroundColor="#1a1a2e">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30,20" Spacing="12">
+
+            <Label Text="📰 Live Feeds"
+                   FontSize="28" FontAttributes="Bold"
+                   TextColor="#e94560" HorizontalOptions="Center" />
+            <Label Text="Fetched over HTTPS by Studio, streamed to the device via WiFi"
+                   FontSize="14" TextColor="#888" HorizontalOptions="Center" />
+
+            <BoxView HeightRequest="1" Color="#333" Margin="0,5" />
+
+            <!-- Feed toggles -->
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Sources" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="10">
+                        <Label Grid.Row="0" Grid.Column="0" Text="📖" FontSize="16" />
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="0">
+                            <Label Text="Today's Verse — heartlight.org" TextColor="#eee" FontSize="14" />
+                            <Label Text="Every 6 hours → verse card on screen" TextColor="#888" FontSize="11" />
+                        </VerticalStackLayout>
+                        <Switch Grid.Row="0" Grid.Column="2" x:Name="VerseSwitch" OnColor="#e94560" Toggled="OnToggled" />
+
+                        <Label Grid.Row="1" Grid.Column="0" Text="🤖" FontSize="16" />
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="0">
+                            <Label Text="AI News — Google News + TechCrunch RSS" TextColor="#eee" FontSize="14" />
+                            <Label Text="Every 15 min → bottom-line banner" TextColor="#888" FontSize="11" />
+                        </VerticalStackLayout>
+                        <Switch Grid.Row="1" Grid.Column="2" x:Name="NewsSwitch" OnColor="#e94560" Toggled="OnToggled" />
+
+                        <Label Grid.Row="2" Grid.Column="0" Text="🌤️" FontSize="16" />
+                        <VerticalStackLayout Grid.Row="2" Grid.Column="1" Spacing="0">
+                            <Label Text="Weather fallback — Open-Meteo (Centurion ZA)" TextColor="#eee" FontSize="14" />
+                            <Label Text="Every 10 min (device also fetches directly)" TextColor="#888" FontSize="11" />
+                        </VerticalStackLayout>
+                        <Switch Grid.Row="2" Grid.Column="2" x:Name="WeatherSwitch" OnColor="#e94560" Toggled="OnToggled" />
+
+                        <Label Grid.Row="3" Grid.Column="0" Text="⏰" FontSize="16" />
+                        <VerticalStackLayout Grid.Row="3" Grid.Column="1" Spacing="0">
+                            <Label Text="Time sync fallback (device uses NTP)" TextColor="#eee" FontSize="14" />
+                            <Label Text="Every 12 hours" TextColor="#888" FontSize="11" />
+                        </VerticalStackLayout>
+                        <Switch Grid.Row="3" Grid.Column="2" x:Name="TimeSwitch" OnColor="#e94560" Toggled="OnToggled" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Controls -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <Button Grid.Column="0" x:Name="StartBtn" Text="▶️ Start Feeds" Clicked="OnStartClicked"
+                        BackgroundColor="#e94560" TextColor="White" FontAttributes="Bold" />
+                <Button Grid.Column="1" x:Name="StopBtn" Text="⏹️ Stop" Clicked="OnStopClicked"
+                        BackgroundColor="#0f3460" TextColor="#eee" />
+                <Button Grid.Column="2" x:Name="PushNowBtn" Text="⚡ Push All Now" Clicked="OnPushNowClicked"
+                        BackgroundColor="#0f3460" TextColor="#eee" />
+            </Grid>
+
+            <!-- Log -->
+            <Frame BackgroundColor="#0a0a0f" CornerRadius="8" Padding="10" BorderColor="#0f3460">
+                <ScrollView HeightRequest="220" x:Name="LogScroll">
+                    <Label x:Name="LogLabel" Text="" TextColor="#44ff44"
+                           FontFamily="Consolas" FontSize="12" LineBreakMode="WordWrap" />
+                </ScrollView>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

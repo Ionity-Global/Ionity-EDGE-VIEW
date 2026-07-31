@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>EdgeView.Core</RootNamespace>
+    <AssemblyName>EdgeView.Core</AssemblyName>
+    <Company>Ionity Global (Pty) Ltd</Company>
+    <Product>IO-nity EDGE-VIEW</Product>
+  </PropertyGroup>
+
+  <!-- The web console is compiled in, so the host needs no files on disk. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\docs\app\**\*" Exclude="..\docs\app\firmware\**">
+      <LogicalName>EdgeView.Web.$([System.String]::Copy('%(RecursiveDir)%(Filename)%(Extension)').Replace('\','.').Replace('/','.'))</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\docs\assets\ionity_logo.ico" LogicalName="EdgeView.Web.assets.ionity_logo.ico" />
+    <EmbeddedResource Include="..\docs\assets\ionity_logo.png" LogicalName="EdgeView.Web.assets.ionity_logo.png" />
+  </ItemGroup>
+
+</Project>

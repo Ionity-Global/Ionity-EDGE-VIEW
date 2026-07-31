@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IO-nity EDGE-VIEW · Web Console</title>
+<meta name="description" content="Browser control console for the IO-nity EDGE-VIEW server-driven Pico 2W display: reset, reflash, live WiFi stream and AI scene control." />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="../assets/ionity_logo.ico" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<canvas id="bgfx" aria-hidden="true"></canvas>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="bolt">⚡</span>
+    <div>
+      <h1>IO-nity <b>EDGE-VIEW</b></h1>
+      <small>Web Console · Ionity Global (Pty) Ltd</small>
+    </div>
+  </div>
+  <div class="pills">
+    <span class="pill" id="pillBridge" data-state="off">Bridge offline</span>
+    <span class="pill" id="pillDevice" data-state="off">No device</span>
+    <span class="pill" id="pillUsb" data-state="off">USB idle</span>
+    <span class="pill" id="pillAi" data-state="off">AI standby</span>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- ─────────── Live view ─────────── -->
+  <section class="card span2 view" id="cardView">
+    <h2>Live view <span class="chip" id="viewStatus">preview</span></h2>
+    <div class="screen">
+      <canvas id="previewCanvas" width="640" height="480"></canvas>
+      <canvas id="mirrorCanvas" width="160" height="120" hidden></canvas>
+    </div>
+    <div class="row wrap small">
+      <button id="btnSourcePreview" class="primary">🖥 Preview</button>
+      <button id="btnSourceMirror">📡 Live mirror</button>
+      <label class="chk" title="Frames per second requested from the device">
+        fps <input id="mirrorFps" type="range" min="1" max="10" value="5" />
+        <span id="mirrorFpsLabel">5</span>
+      </label>
+      <span class="state" id="viewNote">Preview is drawn here from live data — the device is not involved.</span>
+    </div>
+  </section>
+
+  <!-- ─────────── Server / bridge ─────────── -->
+  <section class="card span2" id="cardServer">
+    <h2>① Server</h2>
+    <p class="hint">
+      The console is only a control surface. The <b>server</b> is EDGE-VIEW Studio running on your
+      machine — it fetches the feeds and streams them into the display. This page talks to it over
+      <code>http://127.0.0.1:8787</code>.
+    </p>
+    <div class="row">
+      <input id="tokenInput" type="password" placeholder="Pairing token from Studio → Control" autocomplete="off" />
+      <button id="btnPair" class="primary">Pair</button>
+      <button id="btnProbe">Probe</button>
+    </div>
+    <div id="serverState" class="state">Looking for a server…</div>
+    <div class="row wrap" id="serverActions">
+      <a class="btn" id="btnDownloadServer" href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/releases/latest" target="_blank" rel="noopener">⬇ Download server</a>
+      <button id="btnStartServer">▶ Start server</button>
+      <button id="btnFeeds">🔄 Feeds: ?</button>
+      <button id="btnDetach" class="ghost">Unpair</button>
+    </div>
+  </section>
+
+  <!-- ─────────── Device power ─────────── -->
+  <section class="card" id="cardDevice">
+    <h2>② Device</h2>
+    <div class="row">
+      <input id="ipInput" placeholder="192.168.1.100" />
+      <button id="btnSetIp">Set</button>
+    </div>
+    <div class="row wrap">
+      <button id="btnReset" class="danger">⟳ Reset device</button>
+      <button id="btnReload">↻ Reload content</button>
+      <button id="btnPing">📡 Ping</button>
+    </div>
+    <div class="row wrap small">
+      <button data-mode="pacman">Pac-Man</button>
+      <button data-mode="snake">Snake</button>
+      <button data-mode="bounce">Bounce</button>
+      <button data-mode="off">Off</button>
+    </div>
+    <ul id="deviceList" class="list"></ul>
+  </section>
+
+  <!-- ─────────── Flash ─────────── -->
+  <section class="card" id="cardFlash">
+    <h2>③ Flash</h2>
+    <p class="hint">Hold <b>BOOTSEL</b>, plug in the Pico, then flash straight from the browser.</p>
+    <div class="row">
+      <select id="fwSelect"><option value="">Loading builds…</option></select>
+      <button id="btnRefreshFw" title="Reload build list">⟳</button>
+    </div>
+    <div class="row wrap">
+      <button id="btnFlashUsb" class="primary">⚡ Flash over USB</button>
+      <button id="btnFlashDrive">💾 Copy to RPI-RP2</button>
+      <button id="btnDownloadUf2">⬇ UF2</button>
+    </div>
+    <div class="row wrap small">
+      <button id="btnBootsel">↧ Reboot to BOOTSEL</button>
+      <label class="file">📁 Local UF2<input id="fwFile" type="file" accept=".uf2" hidden /></label>
+    </div>
+    <progress id="flashProgress" value="0" max="1"></progress>
+    <div id="flashState" class="state">Idle.</div>
+  </section>
+
+  <!-- ─────────── WiFi stream ─────────── -->
+  <section class="card span2 tall" id="cardStream">
+    <h2>④ WiFi stream <span class="chip" id="streamRate">0 /min</span></h2>
+    <div class="row wrap small">
+      <button id="btnStreamPause">⏸ Pause</button>
+      <button id="btnStreamClear">🧹 Clear</button>
+      <label class="chk"><input type="checkbox" id="chkTx" checked /> tx</label>
+      <label class="chk"><input type="checkbox" id="chkRx" checked /> rx</label>
+      <label class="chk"><input type="checkbox" id="chkLog" checked /> log</label>
+      <input id="streamFilter" placeholder="filter…" />
+    </div>
+    <div id="streamBox" class="stream" role="log" aria-live="polite"></div>
+    <div class="row">
+      <input id="rawInput" placeholder='{"type":"data","key":"hdr.title","value":"HELLO"}' spellcheck="false" />
+      <button id="btnRawSend" class="primary">Send</button>
+    </div>
+  </section>
+
+  <!-- ─────────── WiFi provisioning ─────────── -->
+  <section class="card" id="cardWifi">
+    <h2>⑤ WiFi</h2>
+    <p class="hint">Move the display to another network without touching it. It saves and reboots.</p>
+    <div class="row"><input id="ssidInput" placeholder="SSID" maxlength="32" /></div>
+    <div class="row"><input id="passInput" type="password" placeholder="Password" maxlength="63" /></div>
+    <button id="btnWifi" class="danger wide">📶 Reprovision</button>
+    <button id="btnWifiReset" class="wide">🧹 Forget saved WiFi</button>
+    <p class="hint">Forget erases the stored credentials. The device reboots onto its build-time
+      network, or its own setup access point if it has none — you must be in range to recover it.</p>
+    <div id="wifiState" class="state">Idle.</div>
+  </section>
+
+  <!-- ─────────── Scene ─────────── -->
+  <section class="card" id="cardScene">
+    <h2>⑥ Scene</h2>
+    <div id="slotGrid" class="slots"></div>
+    <div class="row wrap small">
+      <button id="btnReadLayout">📥 Read</button>
+      <button id="btnApplyLayout" class="primary">📤 Apply</button>
+    </div>
+  </section>
+
+  <!-- ─────────── AI ─────────── -->
+  <section class="card span2" id="cardAi">
+    <h2>⑦ Ionity AI <span class="chip" id="brainChip">brain: ?</span></h2>
+
+    <div class="chatlog" id="chatLog"></div>
+    <div class="row">
+      <input id="chatInput" placeholder="Talk to the display — “put the clock on the stage”, “browse bbc.com/news”…" />
+      <button id="btnChatSend" class="primary">Send</button>
+    </div>
+    <div class="row wrap small">
+      <button id="btnBrainProbe">🧠 Find local model</button>
+      <button id="btnChatClear" class="ghost">Clear</button>
+      <span class="state" id="brainState">Looking for a local model…</span>
+    </div>
+
+    <div class="row">
+      <input id="aiInput" placeholder='Direct command: "switch to night scene"' />
+      <button id="btnAiRun">Run</button>
+    </div>
+    <div class="row wrap small" id="aiPresets"></div>
+    <div class="ai-cols">
+      <div>
+        <h3>Autopilot</h3>
+        <label class="chk"><input type="checkbox" id="chkAutopilot" /> Compose scenes by time of day</label>
+        <label class="chk"><input type="checkbox" id="chkSentinel" checked /> Sentinel: watch health &amp; self-heal</label>
+        <label class="chk"><input type="checkbox" id="chkCurator" checked /> Curator: rank &amp; de-duplicate headlines</label>
+        <div class="gauge"><div id="healthBar"></div></div>
+        <div id="healthText" class="state">Health unknown.</div>
+      </div>
+      <div>
+        <h3>Inbound (Gist)</h3>
+        <p class="hint">Poll a public Gist for directives — chat lines, data keys, layout, headlines. Anything the file contains gets streamed to the glass.</p>
+        <div class="row">
+          <input id="gistInput" placeholder="gist id or raw URL" />
+          <button id="btnGistPoll">Pull</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="chkGistAuto" /> Auto-pull every 60 s</label>
+        <div id="gistState" class="state">No inbound source.</div>
+      </div>
+    </div>
+    <div id="aiLog" class="ailog"></div>
+  </section>
+
+</main>
+
+<!-- ─────────── Floating chat crawl ─────────── -->
+<div class="crawl" id="crawl">
+  <div class="crawl-tag">CHAT</div>
+  <div class="crawl-track"><div class="crawl-line" id="crawlLine">Waiting for the server…</div></div>
+  <form class="crawl-say" id="crawlForm">
+    <input id="crawlName" placeholder="name" maxlength="16" />
+    <input id="crawlText" placeholder="say something to the screen…" maxlength="140" />
+    <button class="primary">Send</button>
+  </form>
+  <button class="crawl-toggle" id="crawlToggle" title="Pause crawl">⏸</button>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>EdgeView.Host</RootNamespace>
+    <AssemblyName>EdgeViewHost</AssemblyName>
+
+    <Product>IO-nity EDGE-VIEW Host</Product>
+    <Company>Ionity Global (Pty) Ltd</Company>
+    <Authors>Johan Wilhelm van Antwerp</Authors>
+    <Description>Headless server for IO-nity EDGE-VIEW: feed scheduler, device link, AI engine and the web console, in one executable.</Description>
+    <Version>2.1.0</Version>
+
+    <!-- One file, no runtime to install. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EdgeView.Core\EdgeView.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -182,7 +182,7 @@ void Paint_SetPixel(uint16_t Xpoint, uint16_t Ypoint, uint16_t Color)
         return;
     }
 
-    if (X > Paint.WidthMemory || Y > Paint.HeightMemory)
+    if (X >= Paint.WidthMemory || Y >= Paint.HeightMemory)
     {
         Debug("Exceeding display boundaries\r\n");
         return;
@@ -192,7 +192,7 @@ void Paint_SetPixel(uint16_t Xpoint, uint16_t Ypoint, uint16_t Color)
     {
         uint32_t Addr = X / 8 + Y * Paint.WidthByte;
         uint8_t Rdata = Paint.Image[Addr];
-        if (Color & 0xff == BLACK)
+        if ((Color & 0xff) == BLACK)
             Paint.Image[Addr] = Rdata & ~(0x80 >> (X % 8));
         else
             Paint.Image[Addr] = Rdata | (0x80 >> (X % 8));
@@ -796,7 +796,7 @@ void Paint_DrawNum(uint16_t Xpoint, uint16_t Ypoint, double Nummber,
 
     if (Digit == 0)
     {
-        sprintf(Str, "%d", Nummber);
+        sprintf(Str, "%d", (int)Nummber);
     }
     else
     {

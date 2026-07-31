@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="StationPicoInstaller.AboutPage"
+             BackgroundColor="#1a1a2e">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30,20" Spacing="12">
+
+            <Image Source="ionity_logo.png" HeightRequest="96" HorizontalOptions="Center" />
+
+            <Label Text="IO-nity EDGE-VIEW Studio"
+                   FontSize="26" FontAttributes="Bold"
+                   TextColor="#e94560" HorizontalOptions="Center" />
+            <Label x:Name="VersionLabel" Text="Version 2.1"
+                   FontSize="13" TextColor="#888" HorizontalOptions="Center" />
+
+            <BoxView HeightRequest="1" Color="#333" Margin="0,5" />
+
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="How it works" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Label FontSize="13" TextColor="#ccc" LineBreakMode="WordWrap"
+                           Text="The Pico is a renderer, not the brain. This app is the server: it fetches the verse, AI headlines, weather and time, then streams them over WiFi into named screen slots. The device keeps a local fallback so the screen never goes blank when the server is away." />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Ionity Global (Pty) Ltd" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Label Text="Founder · Johan Wilhelm van Antwerp" FontSize="13" TextColor="#ccc" />
+                    <Label Text="Centurion, South Africa" FontSize="13" TextColor="#ccc" />
+                    <Label Text="Policy 986 AED" FontSize="13" TextColor="#ccc" />
+                    <Label Text="Grown from Antwerp Designs (2018)" FontSize="13" TextColor="#888" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Contact" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Label Text="ionity.co.za" FontSize="13" TextColor="#00bcd4" />
+                    <Label Text="ionity.today" FontSize="13" TextColor="#00bcd4" />
+                    <Label Text="ai@ionity.today" FontSize="13" TextColor="#00bcd4" />
+                    <Label Text="node@ionity.co.za" FontSize="13" TextColor="#00bcd4" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="#0a0a0f" CornerRadius="8" Padding="15" BorderColor="#e94560">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Disclaimer" FontSize="14" FontAttributes="Bold" TextColor="#e94560" />
+                    <Label FontSize="12" TextColor="#888" LineBreakMode="WordWrap"
+                           Text="Ionity Global (Pty) Ltd is not affiliated with IONITY GmbH, the European electric-vehicle charging network operating at ionity.eu / ionity.com." />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Label Text="Code licensed MIT. IONITY names, logos and marks are the property of Ionity Global (Pty) Ltd."
+                   FontSize="11" TextColor="#666" HorizontalTextAlignment="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

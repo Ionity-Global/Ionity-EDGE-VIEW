@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IO-nity EDGE-VIEW — Station Pico</title>
+    <title>IO-nity EDGE-VIEW &mdash; server-driven Pico 2W display</title>
     <meta name="description" content="Raspberry Pi Pico 2W-powered DVI display station with WiFi, TCP streaming, and real-time dashboard.">
     <link rel="icon" type="image/x-icon" href="assets/ionity-logo.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/ionity-logo.ico">
@@ -236,6 +236,7 @@
         <a href="#demos">Demos</a>
         <a href="#wiring">Wiring</a>
         <a href="#arch">Architecture</a>
+        <a href="app/">Console</a>
         <a href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki">Wiki</a>
         <a href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW">GitHub</a>
     </nav>
@@ -251,6 +252,14 @@
         <span class="badge cyan">CYW43439 WiFi</span>
         <span class="badge yellow">SDK-Ionity</span>
     </div>
+    <p style="margin-top:1.6rem;">
+        <a href="app/" style="display:inline-block;padding:0.8rem 1.6rem;border-radius:8px;background:#e94560;color:#fff;font-weight:700;text-decoration:none;">
+            &#9889; Open the Web Console
+        </a>
+    </p>
+    <p style="color:var(--text-dim);font-size:0.85rem;margin-top:0.6rem;">
+        Reset, reflash over USB, watch the live WiFi stream and rearrange the screen &mdash; from the browser.
+    </p>
 </section>
 
 <!-- ═══ About ═══ -->
@@ -321,8 +330,8 @@
         </thead>
         <tbody>
             <tr>
-                <td><code>station_demo</code></td>
-                <td>Animated dashboard with sprites, WiFi status, weather, AI stream, FPS counter</td>
+                <td><code>edgeview</code></td>
+                <td>Server-driven scene engine: 10 slots, 16 interchangeable panels, WiFi, NTP, weather, games, verse, QR, news</td>
                 <td><span class="tag custom">SDK-Ionity</span></td>
             </tr>
             <tr>
@@ -383,8 +392,11 @@
     <h3>Firmware Architecture</h3>
     <div class="arch-tree">
         <span class="highlight">libionity/</span>        <span class="file">SDK-Ionity custom library</span><br>
-        &boxur; <span class="file">ionity_wifi.c/h</span>    WiFi provisioning and management<br>
-        &boxur; <span class="file">ionity_stream.c/h</span>  TCP stream server for remote commands<br>
+        &boxur; <span class="file">ionity_wifi.c/h</span>    WiFi provisioning, saved credentials, remote reprovisioning<br>
+        &boxur; <span class="file">ionity_stream.c/h</span>  TCP 4242 command server<br>
+        &boxur; <span class="file">ionity_data.c/h</span>    Server-streamed key/value store (32 slots, 5 min staleness)<br>
+        &boxur; <span class="file">ionity_scene.c/h</span>   Slot/panel registry &mdash; the interchangeable layer<br>
+        &boxur; <span class="file">ionity_http.c/h</span>    HTTP 80 page + message board<br>
         &boxur; <span class="file">ionity_pixels.c/h</span>  Pixel-level drawing utilities<br>
         &boxur; <span class="file">ionity_brand.c/h</span>   Branding, header, footer, panels<br>
         <br>
@@ -392,8 +404,8 @@
         <span class="dir">libgui/</span>          <span class="file">GUI drawing library (Waveshare)</span><br>
         <span class="dir">libsprite/</span>       <span class="file">Sprite rendering library</span><br>
         <br>
-        <span class="dir">apps/</span>            <span class="file">Application demos</span><br>
-        &boxur; <span class="highlight">station_demo/</span>  <span class="file">Main dashboard</span><br>
+        <span class="dir">apps/</span>            <span class="file">Applications</span><br>
+        &boxur; <span class="highlight">edgeview/</span>  <span class="file">The flagship app</span><br>
         &boxur; <span class="file">demo_*/</span>          <span class="file">Additional demos</span>
     </div>
 </section>
@@ -402,15 +414,21 @@
 <section>
     <h3>Stream Protocol</h3>
     <p style="color:var(--text-dim);margin-bottom:1rem;">
-        The EDGE-VIEW runs a TCP server on port <strong>4242</strong>. Send JSON commands to control the dashboard remotely:
+        EDGE-VIEW runs a TCP server on port <strong>4242</strong>. The server streams values into the
+        key/value store and rebinds panels to slots &mdash; live, with no reflash:
     </p>
     <div class="arch-tree" style="font-size:0.85rem;">
-        <span class="file">{&quot;type&quot;:&quot;ping&quot;}</span><br>
-        <span class="file">{&quot;type&quot;:&quot;weather&quot;,&quot;temp&quot;:25,&quot;cond&quot;:1}</span><br>
-        <span class="file">{&quot;type&quot;:&quot;text&quot;,&quot;text&quot;:&quot;Hello from AI&quot;}</span><br>
-        <span class="file">{&quot;type&quot;:&quot;sprite&quot;,0,100,200,2,2}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;data&quot;,&quot;key&quot;:&quot;hdr.title&quot;,&quot;value&quot;:&quot;IO-NITY EDGE-VIEW&quot;}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;layout&quot;,&quot;slot&quot;:&quot;stage&quot;,&quot;panel&quot;:&quot;clock&quot;}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;query&quot;,&quot;what&quot;:&quot;layout&quot;}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;wifi&quot;,&quot;ssid&quot;:&quot;NewNetwork&quot;,&quot;pass&quot;:&quot;secret&quot;}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;mode&quot;,&quot;name&quot;:&quot;pacman&quot;}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;ping&quot;}</span> &middot;
         <span class="file">{&quot;type&quot;:&quot;reboot&quot;}</span>
     </div>
+    <p style="margin-top:1rem;">
+        <a href="app/" style="color:var(--accent,#e94560);font-weight:600;">Drive it from the browser &rarr;</a>
+    </p>
 </section>
 
 <!-- ═══ Footer ═══ -->

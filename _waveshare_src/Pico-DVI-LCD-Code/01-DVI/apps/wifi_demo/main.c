@@ -73,6 +73,12 @@ static const char HTTP_OK[] =
     "Access-Control-Allow-Methods: GET, OPTIONS\r\n"
     "Connection: close\r\n\r\n";
 
+static const char HTTP_BAD[] =
+    "HTTP/1.1 400 Bad Request\r\n"
+    "Content-Type: application/json\r\n"
+    "Access-Control-Allow-Origin: *\r\n"
+    "Connection: close\r\n\r\n";
+
 static const char HTTP_OK_HTML[] =
     "HTTP/1.1 200 OK\r\n"
     "Content-Type: text/html\r\n"
@@ -82,6 +88,17 @@ static void send_response(struct tcp_pcb *pcb, const char *header, const char *b
     tcp_write(pcb, header, strlen(header), TCP_WRITE_FLAG_COPY);
     if (body) tcp_write(pcb, body, strlen(body), TCP_WRITE_FLAG_COPY);
     tcp_output(pcb);
+}
+
+// ── Input validation ───────────────────────────────────────────────
+static bool in_screen(int x, int y) {
+    return x >= 0 && x < FRAME_WIDTH && y >= 0 && y < FRAME_HEIGHT;
+}
+
+static void send_bad_request(struct tcp_pcb *pcb, const char *what) {
+    char buf[96];
+    snprintf(buf, sizeof(buf), "{\"status\":\"error\",\"error\":\"invalid %s\"}", what);
+    send_response(pcb, HTTP_BAD, buf);
 }
 
 // ── API handlers ────────────────────────────────────────────────────────────
@@ -117,6 +134,9 @@ static void handle_text(struct tcp_pcb *pcb, const char *url) {
     char text[128];
     get_param_str(url, "text", text, sizeof(text));
 
+    if (!in_screen(x, y)) { send_bad_request(pcb, "coords"); return; }
+    if (fg < 0 || fg > 7 || bg < 0 || bg > 7) { send_bad_request(pcb, "color"); return; }
+
     sFONT *font = &Font16;
     if (size <= 8) font = &Font8;
     else if (size <= 12) font = &Font12;
@@ -140,6 +160,13 @@ static void handle_rect(struct tcp_pcb *pcb, const char *url) {
     int fill = get_param_int(url, "fill", 0);
     int thick = get_param_int(url, "thick", 2);
 
+    if (!in_screen(x1, y1) || !in_screen(x2, y2) || x2 < x1 || y2 < y1) {
+        send_bad_request(pcb, "coords"); return;
+    }
+    if (color < 0 || color > 7) { send_bad_request(pcb, "color"); return; }
+    if (thick < 1) thick = 1;
+    if (thick > 8) thick = 8;
+
     Paint_DrawRectangle(x1, y1, x2, y2, color,
         (DOT_PIXEL)thick, fill ? DRAW_FILL_FULL : DRAW_FILL_EMPTY);
 
@@ -155,6 +182,16 @@ static void handle_circle(struct tcp_pcb *pcb, const char *url) {
     int color = get_param_int(url, "color", C_WHITE);
     int fill = get_param_int(url, "fill", 0);
 
+    if (!in_screen(x, y)) { send_bad_request(pcb, "coords"); return; }
+    if (r < 1 || r > FRAME_WIDTH) { send_bad_request(pcb, "radius"); return; }
+    if (color < 0 || color > 7) { send_bad_request(pcb, "color"); return; }
+    /* Clamp radius so the circle stays on screen. */
+    if (x - r < 0) r = x;
+    if (y - r < 0) r = r < y ? r : y;
+    if (x + r >= FRAME_WIDTH)  r = FRAME_WIDTH - 1 - x < r ? FRAME_WIDTH - 1 - x : r;
+    if (y + r >= FRAME_HEIGHT) r = FRAME_HEIGHT - 1 - y < r ? FRAME_HEIGHT - 1 - y : r;
+    if (r < 1) { send_bad_request(pcb, "radius"); return; }
+
     Paint_DrawCircle(x, y, r, color, DOT_PIXEL_1X1, fill ? DRAW_FILL_FULL : DRAW_FILL_EMPTY);
 
     char buf[128];
@@ -169,6 +206,9 @@ static void handle_line(struct tcp_pcb *pcb, const char *url) {
     int y2 = get_param_int(url, "y2", 100);
     int color = get_param_int(url, "color", C_WHITE);
 
+    if (!in_screen(x1, y1) || !in_screen(x2, y2)) { send_bad_request(pcb, "coords"); return; }
+    if (color < 0 || color > 7) { send_bad_request(pcb, "color"); return; }
+
     Paint_DrawLine(x1, y1, x2, y2, color, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
 
     char buf[128];
@@ -180,6 +220,10 @@ static void handle_pixel(struct tcp_pcb *pcb, const char *url) {
     int x = get_param_int(url, "x", 0);
     int y = get_param_int(url, "y", 0);
     int color = get_param_int(url, "color", C_WHITE);
+
+    if (!in_screen(x, y)) { send_bad_request(pcb, "coords"); return; }
+    if (color < 0 || color > 7) { send_bad_request(pcb, "color"); return; }
+
     Paint_SetPixel(x, y, color);
 
     char buf[64];

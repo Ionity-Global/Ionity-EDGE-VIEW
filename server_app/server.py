@@ -1,6 +1,11 @@
 """
-IO-nity Station Pico - Bridge Server
-====================================
+IO-nity Station Pico - Bridge Server  [DEPRECATED]
+==================================================
+SUPERSEDED BY: StationPicoInstaller ("IO-nity EDGE-VIEW Studio").
+The Studio app's Messages and Feeds tabs replace this bridge and add
+feed fetching, device discovery and live control. This script is kept
+only for headless/Linux setups and receives no new features.
+
 HTTPS web server that proxies messages to the Pico display.
 Generates a self-signed certificate so all devices on WiFi
 can securely send messages to the Pico.

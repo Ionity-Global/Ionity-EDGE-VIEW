@@ -1,0 +1,48 @@
+# NOTICE
+
+**IO-nity EDGE-VIEW** — Copyright (c) 2024-2025 Ionity Global (Pty) Ltd.
+Source code released under the MIT License (see `LICENSE`).
+
+## Trademarks and brand
+
+The IONITY name, the IO-nity wordmark, the EDGE-VIEW product name and all
+associated logos, icons and marks (including the assets in `assets/brand/` and
+`StationPicoInstaller/Resources/`) are the property of Ionity Global (Pty) Ltd.
+The MIT licence covers the source code only — it does not grant any right to
+use these marks.
+
+## Disclaimer
+
+Ionity Global (Pty) Ltd is a South African technology company and is **not
+affiliated with, endorsed by, or connected to IONITY GmbH**, the European
+electric-vehicle charging network operating at ionity.eu / ionity.com.
+
+## Sibling projects
+
+- [`Ionity-Global/picolink`](https://github.com/Ionity-Global/picolink) —
+  Pico W USB Bluetooth HCI dongle with an SH1107 OLED and an Electron console.
+  EDGE-VIEW follows the same repository conventions and companion-app pattern
+  but shares no code with it.
+- [`Ionity-Global-Pty-Ltd/ionity-assets`](https://github.com/Ionity-Global-Pty-Ltd/ionity-assets) —
+  source of the brand assets vendored under `assets/brand/`.
+
+## Third-party components
+
+| Component | Licence | Use |
+|---|---|---|
+| Raspberry Pi Pico SDK | BSD-3-Clause | Firmware platform |
+| Wren6991 / PicoDVI (`libdvi`) | BSD-3-Clause | DVI signal generation over HSTX/PIO |
+| Waveshare Pico-DVI-LCD demo code (`libgui`) | MIT | Framebuffer drawing primitives |
+| lwIP | BSD-3-Clause | TCP/IP, HTTP, UDP, NTP |
+| Infineon CYW43 driver / firmware | Infineon licence | Pico 2W WiFi |
+| .NET MAUI | MIT | EDGE-VIEW Studio |
+
+## Data sources
+
+Content streamed by EDGE-VIEW Studio comes from third parties and remains
+subject to their own terms:
+
+- Open-Meteo (weather) — CC BY 4.0
+- Heartlight *Today's Verse*
+- Google News RSS, TechCrunch AI RSS (headlines)
+- `pool.ntp.org` (time)

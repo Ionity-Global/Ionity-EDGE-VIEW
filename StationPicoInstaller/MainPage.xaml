@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="StationPicoInstaller.MainPage"
+             BackgroundColor="#1a1a2e">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30,20" Spacing="12">
+
+            <!-- Header -->
+            <Label Text="⚡ IO-nity EDGE-VIEW Studio"
+                   FontSize="28" FontAttributes="Bold"
+                   TextColor="#e94560" HorizontalOptions="Center" />
+            <Label Text="Pico 2W + Waveshare 10.1&quot; DVI Display · Ionity Global (Pty) Ltd"
+                   FontSize="14" TextColor="#888" HorizontalOptions="Center" />
+
+            <BoxView HeightRequest="1" Color="#333" Margin="0,5" />
+
+            <!-- Status Panel -->
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Environment Status" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="10">
+                        <!-- Git -->
+                        <Label Grid.Row="0" Grid.Column="0" x:Name="GitIcon" Text="⏳" FontSize="16" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Git" TextColor="#eee" FontSize="14" />
+                        <Label Grid.Row="0" Grid.Column="2" x:Name="GitStatus" Text="Checking..." TextColor="#888" FontSize="12" />
+
+                        <!-- CMake -->
+                        <Label Grid.Row="1" Grid.Column="0" x:Name="CMakeIcon" Text="⏳" FontSize="16" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="CMake" TextColor="#eee" FontSize="14" />
+                        <Label Grid.Row="1" Grid.Column="2" x:Name="CMakeStatus" Text="Checking..." TextColor="#888" FontSize="12" />
+
+                        <!-- ARM GCC -->
+                        <Label Grid.Row="2" Grid.Column="0" x:Name="ArmGccIcon" Text="⏳" FontSize="16" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="ARM GCC Toolchain" TextColor="#eee" FontSize="14" />
+                        <Label Grid.Row="2" Grid.Column="2" x:Name="ArmGccStatus" Text="Checking..." TextColor="#888" FontSize="12" />
+
+                        <!-- Pico SDK -->
+                        <Label Grid.Row="3" Grid.Column="0" x:Name="SdkIcon" Text="⏳" FontSize="16" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="Pico SDK 2.1.1" TextColor="#eee" FontSize="14" />
+                        <Label Grid.Row="3" Grid.Column="2" x:Name="SdkStatus" Text="Checking..." TextColor="#888" FontSize="12" />
+
+                        <!-- Ninja -->
+                        <Label Grid.Row="4" Grid.Column="0" x:Name="NinjaIcon" Text="⏳" FontSize="16" />
+                        <Label Grid.Row="4" Grid.Column="1" Text="Ninja Build" TextColor="#eee" FontSize="14" />
+                        <Label Grid.Row="4" Grid.Column="2" x:Name="NinjaStatus" Text="Checking..." TextColor="#888" FontSize="12" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Pico Detection -->
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Pico Device" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <Label Grid.Column="0" x:Name="PicoIcon" Text="⏳" FontSize="16" />
+                        <Label Grid.Column="1" x:Name="PicoStatus" Text="Scanning for Pico..." TextColor="#eee" FontSize="14" />
+                        <Button Grid.Column="2" x:Name="RefreshBtn" Text="🔄 Refresh"
+                                BackgroundColor="#0f3460" TextColor="#eee" FontSize="12"
+                                Padding="10,4" Clicked="OnRefreshClicked" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- WiFi Config -->
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="WiFi Configuration" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="10">
+                        <Label Grid.Row="0" Grid.Column="0" Text="SSID:" TextColor="#eee" VerticalOptions="Center" />
+                        <Entry Grid.Row="0" Grid.Column="1" x:Name="SsidEntry"
+                               Placeholder="Your WiFi name" TextColor="#eee"
+                               BackgroundColor="#0f3460" PlaceholderColor="#666" />
+                        <Label Grid.Row="1" Grid.Column="0" Text="Password:" TextColor="#eee" VerticalOptions="Center" />
+                        <Entry Grid.Row="1" Grid.Column="1" x:Name="PasswordEntry"
+                               Placeholder="WiFi password" TextColor="#eee"
+                               BackgroundColor="#0f3460" PlaceholderColor="#666"
+                               IsPassword="True" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Demo Selection -->
+            <Frame BackgroundColor="#16213e" CornerRadius="8" Padding="15" BorderColor="#0f3460">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Demo Selection" FontSize="16" FontAttributes="Bold" TextColor="#e94560" />
+                    <Picker x:Name="DemoPicker" TextColor="#eee" BackgroundColor="#0f3460" TitleColor="#888">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>Station Demo - Animated dashboard</x:String>
+                                <x:String>Color Test - Cycles all 8 colors</x:String>
+                                <x:String>Bounce - Animated bouncing balls</x:String>
+                                <x:String>System Info - Hardware diagnostics</x:String>
+                                <x:String>Rainbow - Animated gradient sweep</x:String>
+                                <x:String>GUI Demo - Waveshare drawing primitives</x:String>
+                                <x:String>Hello DVI - Scrolling test card</x:String>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Action Buttons -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Grid.Column="0" x:Name="SetupBtn"
+                        Text="🔧 Full Setup" FontSize="16" FontAttributes="Bold"
+                        BackgroundColor="#e94560" TextColor="White"
+                        HeightRequest="50" CornerRadius="8"
+                        Clicked="OnSetupClicked" />
+                <Button Grid.Column="1" x:Name="BuildFlashBtn"
+                        Text="⚡ Build &amp; Flash" FontSize="16" FontAttributes="Bold"
+                        BackgroundColor="#0f3460" TextColor="White"
+                        HeightRequest="50" CornerRadius="8"
+                        Clicked="OnBuildFlashClicked" />
+            </Grid>
+
+            <!-- Progress -->
+            <ProgressBar x:Name="ProgressBar" Progress="0" ProgressColor="#e94560" />
+
+            <!-- Log Output -->
+            <Frame BackgroundColor="#0a0a1a" CornerRadius="8" Padding="10" BorderColor="#333">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Output Log" FontSize="13" FontAttributes="Bold" TextColor="#e94560" />
+                    <ScrollView x:Name="LogScroll" HeightRequest="200">
+                        <Label x:Name="LogLabel" Text="Ready." TextColor="#0f0"
+                               FontFamily="Consolas" FontSize="11" />
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

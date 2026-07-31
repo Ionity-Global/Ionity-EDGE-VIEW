@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Station Pico - Build Script
 .DESCRIPTION
@@ -9,8 +9,8 @@
 [CmdletBinding()]
 param(
     [string]$ProjectDir = $PSScriptRoot,
-    [ValidateSet("station_demo", "gui_demo", "hello_dvi", "demo_bounce", "demo_colors", "demo_sysinfo", "all")]
-    [string]$Target = "station_demo",
+    [ValidateSet("edgeview", "gui_demo", "hello_dvi", "demo_bounce", "demo_colors", "demo_sysinfo", "all")]
+    [string]$Target = "edgeview",
     [switch]$Flash,
     [switch]$Clean
 )
@@ -104,7 +104,7 @@ Pop-Location
 
 $uf2File = Join-Path $buildDir "apps\$Target\$Target.uf2"
 if ($Target -eq "all") {
-    $uf2File = Join-Path $buildDir "apps\station_demo\station_demo.uf2"
+    $uf2File = Join-Path $buildDir "apps\edgeview\edgeview.uf2"
 }
 
 Write-OK "Build complete: $uf2File"

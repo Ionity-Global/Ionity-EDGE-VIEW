@@ -17,6 +17,14 @@ target_include_directories(wifi_demo PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
 )
 
+# Central WiFi credentials (set by wifi_config.cmake via libionity processing)
+if(WIFI_SSID)
+    target_compile_definitions(wifi_demo PRIVATE
+        IONITY_WIFI_SSID="${WIFI_SSID}"
+        IONITY_WIFI_PASS="${WIFI_PASS}"
+    )
+endif()
+
 target_link_libraries(wifi_demo
     pico_stdlib
     pico_multicore

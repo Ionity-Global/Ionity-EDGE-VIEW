@@ -1,0 +1,14 @@
+# WiFi credentials — loaded by libionity/CMakeLists.txt
+# Copy this file to wifi_config.cmake and fill in your values.
+# wifi_config.cmake is gitignored and will NOT be pushed to GitHub.
+
+# Option A: Set credentials here
+# set(WIFI_SSID "YourWiFiSSID")
+# set(WIFI_PASS "YourWiFiPassword")
+
+# Option B: Set environment variables before building
+#   Windows: set IONITY_WIFI_SSID=YourSSID && set IONITY_WIFI_PASS=YourPass
+#   Linux:   export IONITY_WIFI_SSID="YourSSID" && export IONITY_WIFI_PASS="YourPass"
+
+# Option C: Pass via cmake -D flags
+#   cmake -DWIFI_SSID="YourSSID" -DWIFI_PASS="YourPass" ..

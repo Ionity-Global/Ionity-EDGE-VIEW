@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="StationPicoInstaller.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:StationPicoInstaller"
+    Shell.FlyoutBehavior="Disabled"
+    Title="IO-nity EDGE-VIEW Studio">
+
+    <TabBar>
+        <ShellContent
+            Title="Install"
+            ContentTemplate="{DataTemplate local:MainPage}"
+            Route="MainPage" />
+        <ShellContent
+            Title="Control"
+            ContentTemplate="{DataTemplate local:ControlPage}"
+            Route="ControlPage" />
+        <ShellContent
+            Title="Screen"
+            ContentTemplate="{DataTemplate local:ScreenPage}"
+            Route="ScreenPage" />
+        <ShellContent
+            Title="Feeds"
+            ContentTemplate="{DataTemplate local:FeedsPage}"
+            Route="FeedsPage" />
+        <ShellContent
+            Title="Messages"
+            ContentTemplate="{DataTemplate local:MessagesPage}"
+            Route="MessagesPage" />
+        <ShellContent
+            Title="About"
+            ContentTemplate="{DataTemplate local:AboutPage}"
+            Route="AboutPage" />
+    </TabBar>
+
+</Shell>

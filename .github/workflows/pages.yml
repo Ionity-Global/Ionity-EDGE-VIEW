@@ -1,0 +1,129 @@
+name: Pages
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  PICO_SDK_PATH: ${{ github.workspace }}/.sdk/pico-sdk
+  PICO_BOARD: pico2_w
+  PICO_PLATFORM: rp2350
+  DVI_DEFAULT_SERIAL_CONFIG: pico_sock_cfg
+
+jobs:
+  # Build the UF2s that the web console flashes straight from the browser.
+  firmware:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build \
+            gcc-arm-none-eabi g++-arm-none-eabi \
+            libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
+      - name: Cache Pico SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PICO_SDK_PATH }}
+          key: pico-sdk-2.1.1-${{ runner.os }}
+
+      - name: Clone Pico SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch 2.1.1 \
+            https://github.com/raspberrypi/pico-sdk.git ${{ env.PICO_SDK_PATH }}
+          cd ${{ env.PICO_SDK_PATH }} && git submodule update --init --depth 1
+
+      - name: Configure
+        run: >
+          cmake -G Ninja -B build
+          -S ${{ github.workspace }}/_waveshare_src/Pico-DVI-LCD-Code/01-DVI
+          -DPICO_SDK_PATH=${{ env.PICO_SDK_PATH }}
+          -DPICO_BOARD=${{ env.PICO_BOARD }}
+          -DPICO_PLATFORM=${{ env.PICO_PLATFORM }}
+          -DPICO_COPY_TO_RAM=0
+          -DDVI_DEFAULT_SERIAL_CONFIG=${{ env.DVI_DEFAULT_SERIAL_CONFIG }}
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build all targets
+        run: |
+          for t in edgeview demo_colors demo_bounce demo_sysinfo demo_rainbow gui_demo hello_dvi; do
+            cmake --build build --target "$t" -- -j"$(nproc)"
+          done
+
+      - name: Collect UF2s and write manifest
+        run: |
+          mkdir -p site/app/firmware
+          : > /tmp/builds.json
+          first=1
+          echo -n '[' >> /tmp/builds.json
+          for t in edgeview demo_colors demo_bounce demo_sysinfo demo_rainbow gui_demo hello_dvi; do
+            f="build/apps/$t/$t.uf2"
+            [ -f "$f" ] || continue
+            cp "$f" "site/app/firmware/$t.uf2"
+            size=$(stat -c%s "$f")
+            [ $first -eq 1 ] || echo -n ',' >> /tmp/builds.json
+            first=0
+            printf '{"name":"%s","file":"%s.uf2","size":%s}' "$t" "$t" "$size" >> /tmp/builds.json
+          done
+          echo -n ']' >> /tmp/builds.json
+          printf '{"commit":"%s","built":"%s","board":"%s","builds":%s}\n' \
+            "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PICO_BOARD" "$(cat /tmp/builds.json)" \
+            > site/app/firmware/manifest.json
+          cat site/app/firmware/manifest.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-firmware
+          path: site/app/firmware
+          compression-level: 0
+
+  deploy:
+    needs: firmware
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble site
+        run: |
+          mkdir -p site
+          cp -r docs/. site/
+          mkdir -p site/app/firmware
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-firmware
+          path: site/app/firmware
+
+      - name: Vendor brand assets
+        run: |
+          mkdir -p site/assets
+          cp -f assets/brand/* site/assets/ 2>/dev/null || true
+          cp -f assets/brand/ionity_logo.ico site/assets/ionity_logo.ico 2>/dev/null || true
+
+      - name: No Jekyll
+        run: touch site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

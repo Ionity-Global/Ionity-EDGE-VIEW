@@ -12,33 +12,45 @@
 #define SCALE3_CYAN   (SCALE3_GREEN | SCALE3_BLUE)
 #define SCALE3_MAGENTA (SCALE3_RED | SCALE3_BLUE)
 
-/* 24x24 IO-nity brand logo: stylized "I" letterform */
-static const uint8_t logo_data[24][24] = {
-    {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0},
-    {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0},
-    {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0},
-    {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0},
-    {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0},
+/* IO-nity brand mark, 24x24 design units: red rounded "power ring" with a
+ * yellow energy bolt — drawn programmatically so it scales cleanly. */
+
+/* Bolt silhouette as row spans {row, col_start, col_end}. */
+static const uint8_t bolt_spans[][3] = {
+    { 3, 13, 15}, { 4, 12, 15}, { 5, 12, 14}, { 6, 11, 14},
+    { 7, 11, 13}, { 8, 10, 13}, { 9,  8, 16}, {10, 10, 15},
+    {11, 10, 13}, {12,  9, 13}, {13,  9, 12}, {14,  8, 11},
+    {15,  8, 10}, {16,  7, 10}, {17,  7,  9}, {18,  7,  8},
+    {19,  7,  7},
 };
+
+static void logo_block(uint16_t x, uint16_t y, uint8_t scale,
+                       int col, int row, int col2, int row2, uint8_t color) {
+    for (int r = row; r <= row2; r++)
+        for (int c = col; c <= col2; c++)
+            for (uint8_t sy = 0; sy < scale; sy++)
+                for (uint8_t sx = 0; sx < scale; sx++)
+                    Paint_SetPixel(x + c * scale + sx, y + r * scale + sy, color);
+}
+
+void ionity_draw_logo(uint16_t x, uint16_t y, uint8_t scale) {
+    if (scale == 0) scale = 1;
+    /* Power ring (rounded-rect outline, 2 units thick). */
+    logo_block(x, y, scale, 3, 0, 20, 1, SCALE3_RED);     /* top */
+    logo_block(x, y, scale, 3, 22, 20, 23, SCALE3_RED);   /* bottom */
+    logo_block(x, y, scale, 0, 3, 1, 20, SCALE3_RED);     /* left */
+    logo_block(x, y, scale, 22, 3, 23, 20, SCALE3_RED);   /* right */
+    logo_block(x, y, scale, 2, 2, 2, 2, SCALE3_RED);      /* corners */
+    logo_block(x, y, scale, 21, 2, 21, 2, SCALE3_RED);
+    logo_block(x, y, scale, 2, 21, 2, 21, SCALE3_RED);
+    logo_block(x, y, scale, 21, 21, 21, 21, SCALE3_RED);
+    /* Energy bolt. */
+    for (size_t i = 0; i < sizeof(bolt_spans) / sizeof(bolt_spans[0]); i++)
+        logo_block(x, y, scale, bolt_spans[i][1], bolt_spans[i][0],
+                   bolt_spans[i][2], bolt_spans[i][0], SCALE3_YELLOW);
+    /* Ion spark. */
+    logo_block(x, y, scale, 17, 4, 18, 5, SCALE3_WHITE);
+}
 
 void ionity_draw_header(uint16_t screen_width, const char *subtitle) {
     ionity_fill_rect_fast(0, 0, screen_width - 1, IONITY_HEADER_HEIGHT - 1, SCALE3_BLACK);
@@ -68,20 +80,6 @@ void ionity_draw_footer(uint16_t screen_width, uint16_t screen_height,
     }
     if (status_right) {
         Paint_DrawString_EN(screen_width - 200, footer_y + 5, status_right, &Font12, SCALE3_GREEN, SCALE3_BLACK);
-    }
-}
-
-void ionity_draw_logo(uint16_t x, uint16_t y, uint8_t scale) {
-    for (int row = 0; row < 24; row++) {
-        for (int col = 0; col < 24; col++) {
-            if (logo_data[row][col]) {
-                for (uint8_t sy = 0; sy < scale; sy++) {
-                    for (uint8_t sx = 0; sx < scale; sx++) {
-                        Paint_SetPixel(x + col * scale + sx, y + row * scale + sy, SCALE3_RED);
-                    }
-                }
-            }
-        }
     }
 }
 

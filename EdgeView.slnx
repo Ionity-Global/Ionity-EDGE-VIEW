@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="EdgeView.Core/EdgeView.Core.csproj" />
+  <Project Path="EdgeViewHost/EdgeViewHost.csproj" />
+  <Project Path="StationPicoInstaller/StationPicoInstaller.csproj" />
+</Solution>

@@ -19,7 +19,7 @@ The EDGE-VIEW firmware uses **CMake + Ninja** with the Pico SDK 2.1.1 targeting 
 | `StationPico.ps1` | Main management tool (menu, setup, build, flash, status) |
 | `build_native.bat` | Low-level CMake build via MSVC + ARM GCC |
 | `build.ps1` | PowerShell equivalent with -Flash and -Clean flags |
-| `rebuild.bat` | Clean rebuild of `station_demo` only |
+| `rebuild.bat` | Clean rebuild of `edgeview` only |
 | `flash.bat` | Build + flash wrapper |
 | `setup.bat` / `setup.ps1` | First-time dependency installation |
 
@@ -32,7 +32,7 @@ The EDGE-VIEW firmware uses **CMake + Ninja** with the Pico SDK 2.1.1 targeting 
 ├── libgui/CMakeLists.txt       # GUI library
 ├── libionity/CMakeLists.txt    # SDK-Ionity library
 └── apps/CMakeLists.txt         # Demo applications
-    ├── station_demo/
+    ├── edgeview/
     ├── demo_colors/
     ├── demo_bounce/
     ├── demo_sysinfo/
@@ -55,4 +55,4 @@ target_compile_definitions(libionity INTERFACE
 
 ## Important: Init Order
 
-WiFi must be initialised **before** the DVI clock change. The system clock is set to 252 MHz for DVI output, but the CYW43439 SPI cannot communicate at that frequency. See `station_demo/main.c` for the correct init sequence.
+WiFi must be initialised **before** the DVI clock change. The system clock is set to 252 MHz for DVI output, but the CYW43439 SPI cannot communicate at that frequency. See `edgeview/main.c` for the correct init sequence.
