@@ -22,6 +22,7 @@
 #include "ionity_stream.h"
 #include "ionity_pixels.h"
 #include "ionity_brand.h"
+#include "ionity_http.h"
 
 #define FRAME_WIDTH  640
 #define FRAME_HEIGHT 480
@@ -36,6 +37,10 @@
 #define SCALE3_WHITE  0x7
 #define SCALE3_YELLOW (SCALE3_RED | SCALE3_GREEN)
 #define SCALE3_CYAN   (SCALE3_GREEN | SCALE3_BLUE)
+
+#define MARQUEE_Y      230
+#define MARQUEE_HEIGHT 40
+#define MARQUEE_SCROLL_SPEED 2
 
 uint8_t framebuf[3 * PLANE_SIZE_BYTES];
 struct dvi_inst dvi0;
@@ -58,14 +63,19 @@ static Sprite sprites[] = {
 };
 #define NUM_SPRITES (sizeof(sprites) / sizeof(sprites[0]))
 
-/* ---- AI / Stream state ---- */
+/* ---- State ---- */
 static char ai_last_msg[128] = "Waiting for AI...";
 static int weather_temp = 22;
-static int weather_cond = 0;  /* 0=sunny */
+static int weather_cond = 0;
 static bool ai_connected = false;
 static uint32_t fps_value = 0;
 static uint32_t fps_last_time = 0;
 static uint32_t fps_frame_count = 0;
+
+/* ---- Marquee state ---- */
+static char marquee_text[IONITY_HTTP_MAX_MSG_LEN] = "Welcome to IO-nity Station Pico! Open http://<ip> to send messages...";
+static int marquee_offset = 0;
+static int marquee_text_width = 0;
 
 static void update_sprites(void) {
     for (int i = 0; i < NUM_SPRITES; i++) {
@@ -76,6 +86,41 @@ static void update_sprites(void) {
         if (sprites[i].y < IONITY_HEADER_HEIGHT + 10 ||
             sprites[i].y + sprites[i].h >= FRAME_HEIGHT - IONITY_FOOTER_HEIGHT - 10)
             sprites[i].dy = -sprites[i].dy;
+    }
+}
+
+static void draw_marquee(void) {
+    /* Background bar */
+    ionity_fill_rect_fast(0, MARQUEE_Y, FRAME_WIDTH - 1, MARQUEE_Y + MARQUEE_HEIGHT - 1, SCALE3_BLACK);
+    ionity_draw_hline(0, FRAME_WIDTH - 1, MARQUEE_Y, SCALE3_RED);
+    ionity_draw_hline(0, FRAME_WIDTH - 1, MARQUEE_Y + MARQUEE_HEIGHT - 1, SCALE3_RED);
+
+    /* Label */
+    Paint_DrawString_EN(5, MARQUEE_Y + 4, "MSG:", &Font12, SCALE3_RED, SCALE3_BLACK);
+
+    /* Scroll the text */
+    if (marquee_text[0]) {
+        int text_len = strlen(marquee_text);
+        marquee_text_width = text_len * 8;  /* ~8px per char for Font12 */
+
+        int x = 40 - marquee_offset;
+        int max_x = FRAME_WIDTH - 10;
+        int clip_start = 45;
+
+        /* Draw visible portion */
+        for (int i = 0; i < text_len; i++) {
+            int char_x = 40 + i * 8 - marquee_offset;
+            if (char_x < clip_start) continue;
+            if (char_x > max_x) break;
+
+            char ch[2] = { marquee_text[i], '\0' };
+            Paint_DrawString_EN(char_x, MARQUEE_Y + 4, ch, &Font12, SCALE3_YELLOW, SCALE3_BLACK);
+        }
+
+        marquee_offset += MARQUEE_SCROLL_SPEED;
+        if (marquee_offset > marquee_text_width + 40) {
+            marquee_offset = -FRAME_WIDTH;
+        }
     }
 }
 
@@ -113,13 +158,19 @@ static void draw_info_panel(void) {
     snprintf(buf, sizeof(buf), "RSSI: %d dBm", wifi.rssi);
     Paint_DrawString_EN(320, 125, buf, &Font12, SCALE3_CYAN, SCALE3_BLACK);
 
-    snprintf(buf, sizeof(buf), "Stream: %s",
-             ionity_stream_is_connected() ? "Active" : "Waiting");
+    snprintf(buf, sizeof(buf), "HTTP: %s",
+             ionity_http_msg_count() > 0 ? "Active" : "Ready");
     Paint_DrawString_EN(320, 140, buf, &Font12,
-                        ionity_stream_is_connected() ? SCALE3_GREEN : SCALE3_YELLOW, SCALE3_BLACK);
+                        ionity_http_msg_count() > 0 ? SCALE3_GREEN : SCALE3_YELLOW, SCALE3_BLACK);
 
-    snprintf(buf, sizeof(buf), "Port: %d", IONITY_STREAM_PORT);
+    snprintf(buf, sizeof(buf), "Msgs: %d", ionity_http_msg_count());
     Paint_DrawString_EN(320, 155, buf, &Font12, SCALE3_WHITE, SCALE3_BLACK);
+}
+
+static void handle_http_message(const char *text, const char *author) {
+    snprintf(marquee_text, sizeof(marquee_text), "%s: %s", author, text);
+    marquee_offset = -FRAME_WIDTH;
+    snprintf(ai_last_msg, sizeof(ai_last_msg), "%s: %.60s", author, text);
 }
 
 static void handle_stream_command(const ionity_command_t *cmd) {
@@ -133,7 +184,7 @@ static void handle_stream_command(const ionity_command_t *cmd) {
         snprintf(ai_last_msg, sizeof(ai_last_msg), "Weather: %dC cond=%d", weather_temp, weather_cond);
         break;
     case IONITY_CMD_TEXT:
-        snprintf(ai_last_msg, sizeof(ai_last_msg), "AI: %s", cmd->text);
+        handle_http_message(cmd->text, "AI");
         break;
     case IONITY_CMD_REBOOT:
         watchdog_enable(100, 1);
@@ -154,7 +205,6 @@ static void handle_stream_command(const ionity_command_t *cmd) {
     default:
         break;
     }
-
     ai_connected = ionity_stream_is_connected();
 }
 
@@ -185,32 +235,41 @@ int main(void) {
 
     printf("Station Pico - IO-nity SDK starting...\n");
 
-    /* ---- WiFi init at default 125 MHz clock ---- *
-     * Must happen BEFORE set_sys_clock_khz() because
-     * the CYW43 SPI can't communicate at 252 MHz.  */
+    /* ---- Set DVI clock FIRST (252 MHz) ---- *
+     * Must happen before WiFi init so the CYW43 PIO
+     * clock divider is calculated for the final
+     * system clock frequency.                   */
+    set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
+    printf("System clock: %d MHz\n", (int)(DVI_TIMING.bit_clk_khz / 1000));
+
+    /* ---- WiFi init at 252 MHz ---- */
+    printf("Initializing WiFi...\n");
     if (ionity_wifi_init()) {
-        printf("WiFi driver initialized. Connecting to %s...\n", IONITY_WIFI_SSID);
+        printf("WiFi driver OK. Connecting to %s...\n", IONITY_WIFI_SSID);
         if (ionity_wifi_connect_default()) {
             ionity_wifi_info_t info = ionity_wifi_get_info();
-            printf("WiFi connected! IP: %s (took %lu ms)\n", info.ip_addr, info.connect_time_ms);
+            printf("WiFi connected! IP: %s (took %lu ms)\n",
+                   info.ip_addr, info.connect_time_ms);
         } else {
-            printf("WiFi connection failed. Continuing without network.\n");
+            printf("WiFi connection FAILED. Check SSID/password.\n");
         }
     } else {
-        printf("WiFi init failed.\n");
+        printf("WiFi init FAILED.\n");
     }
 
-    /* ---- TCP stream server ---- */
+    /* ---- TCP stream server (port 4242) ---- */
     if (ionity_stream_init(IONITY_STREAM_PORT)) {
-        printf("Stream server listening on port %d\n", IONITY_STREAM_PORT);
+        printf("Stream server on port %d\n", IONITY_STREAM_PORT);
         ionity_stream_set_handler(handle_stream_command);
-    } else {
-        printf("Stream server init failed.\n");
     }
 
-    /* ---- Switch to DVI clock (252 MHz) ---- */
-    set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
+    /* ---- HTTP server (port 80) ---- */
+    if (ionity_http_init(IONITY_HTTP_PORT)) {
+        printf("HTTP server on port %d\n", IONITY_HTTP_PORT);
+        ionity_http_set_msg_handler(handle_http_message);
+    }
 
+    /* ---- DVI init ---- */
     dvi0.timing = &DVI_TIMING;
     dvi0.ser_cfg = DVI_DEFAULT_SERIAL_CONFIG;
     dvi_init(&dvi0, next_striped_spin_lock_num(), next_striped_spin_lock_num());
@@ -244,6 +303,9 @@ int main(void) {
         /* AI status */
         ai_connected = ionity_stream_is_connected();
         ionity_draw_ai_status(10, 280, ai_connected, ai_last_msg);
+
+        /* Scrolling message marquee */
+        draw_marquee();
 
         /* Sprites */
         for (int i = 0; i < NUM_SPRITES; i++) {

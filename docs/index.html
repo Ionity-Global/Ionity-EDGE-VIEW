@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IO-nity EDGE-VIEW — Station Pico</title>
+    <meta name="description" content="Raspberry Pi Pico 2W-powered DVI display station with WiFi, TCP streaming, and real-time dashboard.">
+    <link rel="icon" type="image/x-icon" href="assets/ionity-logo.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/ionity-logo.ico">
+    <style>
+        :root {
+            --red: #e63946;
+            --red-dark: #b71c1c;
+            --green: #2ecc71;
+            --cyan: #00bcd4;
+            --yellow: #f1c40f;
+            --bg: #0a0a0f;
+            --bg2: #12121a;
+            --bg3: #1a1a2e;
+            --text: #e0e0e0;
+            --text-dim: #8888aa;
+            --border: #2a2a3e;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        a { color: var(--cyan); text-decoration: none; }
+        a:hover { color: var(--green); }
+
+        /* ── Header ── */
+        header {
+            background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+            border-bottom: 3px solid var(--red);
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        header .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        header .logo img { height: 48px; width: auto; }
+        header .logo h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        header .logo h1 span { color: var(--red); }
+        header nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        header nav a {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        header nav a:hover { color: var(--red); }
+
+        /* ── Hero ── */
+        .hero {
+            text-align: center;
+            padding: 5rem 2rem 4rem;
+            background: radial-gradient(ellipse at 50% 0%, var(--bg3) 0%, transparent 70%);
+        }
+        .hero h2 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--red), var(--yellow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+        .hero .badge {
+            display: inline-block;
+            background: var(--red);
+            color: #fff;
+            padding: 0.4rem 1.2rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 0.3rem;
+        }
+        .hero .badge.green { background: var(--green); }
+        .hero .badge.cyan { background: var(--cyan); }
+        .hero .badge.yellow { background: var(--yellow); color: #000; }
+
+        /* ── Sections ── */
+        section { padding: 4rem 2rem; max-width: 1100px; margin: 0 auto; }
+        section h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            padding-left: 1rem;
+            border-left: 4px solid var(--red);
+        }
+        section h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--red);
+        }
+
+        /* ── Specs grid ── */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .spec-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .spec-card:hover {
+            border-color: var(--red);
+            transform: translateY(-2px);
+        }
+        .spec-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .spec-card p { color: var(--text-dim); font-size: 0.9rem; }
+        .spec-card .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 0.3rem;
+        }
+
+        /* ── Demo table ── */
+        .demo-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .demo-table th, .demo-table td {
+            text-align: left;
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .demo-table th {
+            color: var(--text-dim);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .demo-table td { font-size: 0.95rem; }
+        .demo-table tr:hover td { background: var(--bg2); }
+        .demo-table .tag {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .tag.custom { background: var(--red); color: #fff; }
+        .tag.waveshare { background: var(--cyan); color: #000; }
+
+        /* ── Wiring table ── */
+        .wiring-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .wiring-table th, .wiring-table td {
+            padding: 0.7rem 1rem;
+            border: 1px solid var(--border);
+        }
+        .wiring-table th {
+            background: var(--bg3);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .wiring-table td { font-family: 'Courier New', monospace; font-size: 0.9rem; }
+        .wiring-table .pin-dvi { color: var(--red); }
+        .wiring-table .pin-gpio { color: var(--green); }
+
+        /* ── Architecture ── */
+        .arch-tree {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+        .arch-tree .dir { color: var(--yellow); }
+        .arch-tree .file { color: var(--text-dim); }
+        .arch-tree .highlight { color: var(--red); }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+        footer .org { color: var(--red); font-weight: 600; }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            header { flex-direction: column; align-items: flex-start; }
+            .hero h2 { font-size: 2rem; }
+            .hero { padding: 3rem 1rem; }
+            section { padding: 2rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══ Header ═══ -->
+<header>
+    <div class="logo">
+        <img src="assets/ionity-logo.png" alt="IO-nity logo">
+        <h1><span>IO-nity</span> EDGE-VIEW</h1>
+    </div>
+    <nav>
+        <a href="#about">About</a>
+        <a href="#specs">Specs</a>
+        <a href="#demos">Demos</a>
+        <a href="#wiring">Wiring</a>
+        <a href="#arch">Architecture</a>
+        <a href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki">Wiki</a>
+        <a href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW">GitHub</a>
+    </nav>
+</header>
+
+<!-- ═══ Hero ═══ -->
+<section class="hero">
+    <h2>EDGE-VIEW</h2>
+    <p class="subtitle">Raspberry Pi Pico 2W driving a Waveshare 10.1&Prime; DVI display — custom firmware with WiFi, TCP streaming, and real-time animated dashboard.</p>
+    <div>
+        <span class="badge">RP2350 Dual Cortex-M33</span>
+        <span class="badge green">640&times;480p60 DVI</span>
+        <span class="badge cyan">CYW43439 WiFi</span>
+        <span class="badge yellow">SDK-Ionity</span>
+    </div>
+</section>
+
+<!-- ═══ About ═══ -->
+<section id="about">
+    <h3>About EDGE-VIEW</h3>
+    <p style="margin-bottom:1rem;color:var(--text-dim);max-width:800px;">
+        EDGE-VIEW is a compact, high-performance display station built on the Raspberry Pi Pico 2W.
+        It uses PIO-based DVI output to drive a 10.1-inch IPS LCD panel, delivering smooth 640&times;480p60
+        video with 8-colour 3-bit RGB graphics. Built-in WiFi enables remote control via a TCP stream
+        server, real-time weather updates, and AI-powered interaction.
+    </p>
+    <p style="color:var(--text-dim);max-width:800px;">
+        The firmware is powered by <strong style="color:var(--red);">SDK-Ionity</strong>, a custom library
+        providing WiFi provisioning, data streaming, pixel-level drawing utilities, and branded UI components
+        &mdash; all optimised for the Pico&rsquo;s dual-core RP2350 architecture.
+    </p>
+</section>
+
+<!-- ═══ Specs ═══ -->
+<section id="specs">
+    <h3>Hardware Specifications</h3>
+    <div class="specs-grid">
+        <div class="spec-card">
+            <div class="icon">&#x1F9E0;</div>
+            <h4>MCU</h4>
+            <p>Raspberry Pi Pico 2W</p>
+            <div class="value">RP2350 &middot; 252 MHz</div>
+        </div>
+        <div class="spec-card">
+            <div class="icon">&#x1F5A5;&#xFE0F;</div>
+            <h4>Display</h4>
+            <p>Waveshare 10.1&Prime; IPS LCD</p>
+            <div class="value">1024&times;600 &middot; DVI Input</div>
+        </div>
+        <div class="spec-card">
+            <div class="icon">&#x1F4F6;</div>
+            <h4>Wireless</h4>
+            <p>Infineon CYW43439</p>
+            <div class="value">WiFi 4 + BLE 5.2</div>
+        </div>
+        <div class="spec-card">
+            <div class="icon">&#x1F50C;</div>
+            <h4>Video Output</h4>
+            <p>PIO-based DVI (TMDS)</p>
+            <div class="value">640&times;480p60 &middot; 3-bit RGB</div>
+        </div>
+        <div class="spec-card">
+            <div class="icon">&#x1F4BE;</div>
+            <h4>Memory</h4>
+            <p>520 KB SRAM + 4 MB Flash</p>
+            <div class="value">PICO_COPY_TO_RAM: OFF</div>
+        </div>
+        <div class="spec-card">
+            <div class="icon">&#x1F50C;</div>
+            <h4>Power</h4>
+            <p>Pico: micro-USB &middot; Display: USB-C</p>
+            <div class="value">5V / 2A+ (separate)</div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ Demos ═══ -->
+<section id="demos">
+    <h3>Firmware Demos</h3>
+    <table class="demo-table">
+        <thead>
+            <tr><th>Demo</th><th>Description</th><th>Source</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>station_demo</code></td>
+                <td>Animated dashboard with sprites, WiFi status, weather, AI stream, FPS counter</td>
+                <td><span class="tag custom">SDK-Ionity</span></td>
+            </tr>
+            <tr>
+                <td><code>demo_colors</code></td>
+                <td>Cycles through all 8 display colours (3-bit RGB)</td>
+                <td><span class="tag custom">SDK-Ionity</span></td>
+            </tr>
+            <tr>
+                <td><code>demo_bounce</code></td>
+                <td>12 animated balls bouncing off walls with physics</td>
+                <td><span class="tag custom">SDK-Ionity</span></td>
+            </tr>
+            <tr>
+                <td><code>demo_sysinfo</code></td>
+                <td>Hardware diagnostics: CPU clock, memory, display info, power setup</td>
+                <td><span class="tag custom">SDK-Ionity</span></td>
+            </tr>
+            <tr>
+                <td><code>demo_rainbow</code></td>
+                <td>Animated rainbow gradient sweep with centre overlay</td>
+                <td><span class="tag custom">SDK-Ionity</span></td>
+            </tr>
+            <tr>
+                <td><code>gui_demo</code></td>
+                <td>Waveshare drawing primitives demo</td>
+                <td><span class="tag waveshare">Waveshare</span></td>
+            </tr>
+            <tr>
+                <td><code>hello_dvi</code></td>
+                <td>Scrolling test pattern image</td>
+                <td><span class="tag waveshare">Waveshare</span></td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- ═══ Wiring ═══ -->
+<section id="wiring">
+    <h3>Pin Wiring</h3>
+    <table class="wiring-table">
+        <thead>
+            <tr><th>Pico GPIO</th><th>Signal</th><th>DVI Pin</th></tr>
+        </thead>
+        <tbody>
+            <tr><td class="pin-gpio">GPIO 8</td><td>DVI Clock</td><td class="pin-dvi">CLK+</td></tr>
+            <tr><td class="pin-gpio">GPIO 10</td><td>TMDS D0</td><td class="pin-dvi">Blue+</td></tr>
+            <tr><td class="pin-gpio">GPIO 12</td><td>TMDS D1</td><td class="pin-dvi">Green+</td></tr>
+            <tr><td class="pin-gpio">GPIO 14</td><td>TMDS D2</td><td class="pin-dvi">Red+</td></tr>
+        </tbody>
+    </table>
+    <p style="color:var(--text-dim);font-size:0.85rem;margin-top:0.5rem;">
+        Pin config: <code>pico_sock_cfg</code> &middot; Differential pairs inverted &middot; PIO: <code>pio0</code>
+    </p>
+</section>
+
+<!-- ═══ Architecture ═══ -->
+<section id="arch">
+    <h3>Firmware Architecture</h3>
+    <div class="arch-tree">
+        <span class="highlight">libionity/</span>        <span class="file">SDK-Ionity custom library</span><br>
+        &boxur; <span class="file">ionity_wifi.c/h</span>    WiFi provisioning and management<br>
+        &boxur; <span class="file">ionity_stream.c/h</span>  TCP stream server for remote commands<br>
+        &boxur; <span class="file">ionity_pixels.c/h</span>  Pixel-level drawing utilities<br>
+        &boxur; <span class="file">ionity_brand.c/h</span>   Branding, header, footer, panels<br>
+        <br>
+        <span class="dir">libdvi/</span>          <span class="file">DVI/TMDS encoding library (PIO-based)</span><br>
+        <span class="dir">libgui/</span>          <span class="file">GUI drawing library (Waveshare)</span><br>
+        <span class="dir">libsprite/</span>       <span class="file">Sprite rendering library</span><br>
+        <br>
+        <span class="dir">apps/</span>            <span class="file">Application demos</span><br>
+        &boxur; <span class="highlight">station_demo/</span>  <span class="file">Main dashboard</span><br>
+        &boxur; <span class="file">demo_*/</span>          <span class="file">Additional demos</span>
+    </div>
+</section>
+
+<!-- ═══ Stream Protocol ═══ -->
+<section>
+    <h3>Stream Protocol</h3>
+    <p style="color:var(--text-dim);margin-bottom:1rem;">
+        The EDGE-VIEW runs a TCP server on port <strong>4242</strong>. Send JSON commands to control the dashboard remotely:
+    </p>
+    <div class="arch-tree" style="font-size:0.85rem;">
+        <span class="file">{&quot;type&quot;:&quot;ping&quot;}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;weather&quot;,&quot;temp&quot;:25,&quot;cond&quot;:1}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;text&quot;,&quot;text&quot;:&quot;Hello from AI&quot;}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;sprite&quot;,0,100,200,2,2}</span><br>
+        <span class="file">{&quot;type&quot;:&quot;reboot&quot;}</span>
+    </div>
+</section>
+
+<!-- ═══ Footer ═══ -->
+<footer>
+    <p>&copy; 2026 <span class="org">Ionity Global (Pty) Ltd</span> &middot; Built with SDK-Ionity &middot; Pico SDK 2.1.1</p>
+    <p style="margin-top:0.5rem;">
+        <a href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW">GitHub</a> &middot;
+        <a href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/wiki">Wiki</a> &middot;
+        <a href="https://www.ionity.co.za">ionity.co.za</a>
+    </p>
+</footer>
+
+</body>
+</html>

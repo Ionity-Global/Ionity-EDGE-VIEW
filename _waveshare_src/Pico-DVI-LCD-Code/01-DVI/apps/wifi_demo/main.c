@@ -294,25 +294,43 @@ int main(void) {
     // Launch DVI on Core1
     multicore_launch_core1(core1_main);
 
+    // Let things settle before WiFi init
+    sleep_ms(500);
+
     // Init WiFi
     printf("Station Pico: Initializing WiFi...\n");
-    if (cyw43_arch_init_with_country(WIFI_COUNTRY)) {
-        printf("WiFi init failed!\n");
-        Paint_DrawString_EN(200, 260, "WiFi INIT FAILED", &Font16, C_RED, C_BLACK);
+    int wifi_init = cyw43_arch_init_with_country(WIFI_COUNTRY);
+    if (wifi_init) {
+        char err_buf[64];
+        snprintf(err_buf, sizeof(err_buf), "WiFi INIT FAILED (%d)", wifi_init);
+        printf("%s\n", err_buf);
+        Paint_DrawString_EN(200, 260, err_buf, &Font16, C_RED, C_BLACK);
         while (true) { sleep_ms(1000); }
     }
 
     cyw43_arch_enable_sta_mode();
-    printf("Connecting to %s...\n", WIFI_SSID);
-    Paint_DrawString_EN(200, 260, WIFI_SSID, &Font16, C_CYAN, C_BLACK);
 
-    int result = cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, WIFI_AUTH, 15000);
+    // Show what we're connecting to
+    char ssid_line[64];
+    snprintf(ssid_line, sizeof(ssid_line), "SSID: %s", WIFI_SSID);
+    Paint_DrawString_EN(150, 260, ssid_line, &Font16, C_CYAN, C_BLACK);
+    Paint_DrawString_EN(150, 290, "Connecting (30s)...", &Font12, C_YELLOW, C_BLACK);
+    printf("Connecting to %s...\n", WIFI_SSID);
+
+    sleep_ms(500);
+
+    int result = cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, WIFI_AUTH, 30000);
     if (result) {
+        char err_buf[64];
+        snprintf(err_buf, sizeof(err_buf), "Failed! Code: %d", result);
         printf("WiFi connect failed (%d)!\n", result);
         Paint_Clear(C_BLACK);
-        Paint_DrawString_EN(180, 180, "STATION PICO", &Font24, C_WHITE, C_BLACK);
-        Paint_DrawString_EN(200, 220, "WiFi Connection Failed", &Font16, C_RED, C_BLACK);
-        Paint_DrawString_EN(200, 260, "Check wifi_config.h", &Font12, C_YELLOW, C_BLACK);
+        Paint_DrawString_EN(180, 140, "STATION PICO", &Font24, C_WHITE, C_BLACK);
+        Paint_DrawString_EN(150, 190, "WiFi Connection Failed", &Font16, C_RED, C_BLACK);
+        Paint_DrawString_EN(150, 230, err_buf, &Font16, C_YELLOW, C_BLACK);
+        Paint_DrawString_EN(150, 270, ssid_line, &Font12, C_CYAN, C_BLACK);
+        Paint_DrawString_EN(150, 300, "Edit wifi_config.h", &Font12, C_WHITE, C_BLACK);
+        Paint_DrawString_EN(150, 320, "-1=Fail -2=NoNet -3=BadPass", &Font12, C_GREEN, C_BLACK);
         cyw43_arch_deinit();
         while (true) { sleep_ms(1000); }
     }

@@ -1,0 +1,187 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master", "main" ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.gitignore'
+  pull_request:
+    branches: [ "master", "main" ]
+  schedule:
+    # Auto-build weekly to catch SDK/dependency regressions
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Demo to build (or "all")'
+        required: false
+        default: 'all'
+
+env:
+  PICO_SDK_PATH: ${{ github.workspace }}/.sdk/pico-sdk
+  PICO_BOARD: pico2_w
+  PICO_PLATFORM: rp2350
+  DVI_DEFAULT_SERIAL_CONFIG: pico_sock_cfg
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [station_demo, demo_colors, demo_bounce, demo_sysinfo, demo_rainbow, gui_demo, hello_dvi]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            cmake ninja-build \
+            gcc-arm-none-eabi g++-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            libstdc++-arm-none-eabi-newlib
+
+      - name: Cache Pico SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PICO_SDK_PATH }}
+          key: pico-sdk-2.1.1-${{ runner.os }}
+          restore-keys: |
+            pico-sdk-2.1.1-
+            pico-sdk-
+
+      - name: Clone Pico SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch 2.1.1 \
+            https://github.com/raspberrypi/pico-sdk.git \
+            ${{ env.PICO_SDK_PATH }}
+          cd ${{ env.PICO_SDK_PATH }}
+          git submodule update --init --depth 1
+
+      - name: Configure CMake
+        run: >
+          cmake -G Ninja
+          -B build
+          -S ${{ github.workspace }}/_waveshare_src/Pico-DVI-LCD-Code/01-DVI
+          -DPICO_SDK_PATH=${{ env.PICO_SDK_PATH }}
+          -DPICO_BOARD=${{ env.PICO_BOARD }}
+          -DPICO_PLATFORM=${{ env.PICO_PLATFORM }}
+          -DPICO_COPY_TO_RAM=0
+          -DDVI_DEFAULT_SERIAL_CONFIG=${{ env.DVI_DEFAULT_SERIAL_CONFIG }}
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build ${{ matrix.target }}
+        run: |
+          cmake --build build --target ${{ matrix.target }} -- -j$(nproc)
+          echo "BUILD_DIR=build/apps/${{ matrix.target }}" >> $GITHUB_ENV
+
+      - name: Show Build Info
+        run: |
+          ls -lh build/apps/${{ matrix.target }}/*.uf2 2>/dev/null || echo "No UF2 found"
+          arm-none-eabi-size build/apps/${{ matrix.target }}/${{ matrix.target }}.elf 2>/dev/null || true
+
+      - name: Upload UF2 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}-uf2
+          path: build/apps/${{ matrix.target }}/${{ matrix.target }}.uf2
+          if-no-files-found: error
+          compression-level: 0
+
+  build-all:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            cmake ninja-build \
+            gcc-arm-none-eabi g++-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            libstdc++-arm-none-eabi-newlib
+
+      - name: Cache Pico SDK
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PICO_SDK_PATH }}
+          key: pico-sdk-2.1.1-${{ runner.os }}
+
+      - name: Clone Pico SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch 2.1.1 \
+            https://github.com/raspberrypi/pico-sdk.git \
+            ${{ env.PICO_SDK_PATH }}
+          cd ${{ env.PICO_SDK_PATH }}
+          git submodule update --init --depth 1
+
+      - name: Configure CMake
+        run: >
+          cmake -G Ninja
+          -B build
+          -S ${{ github.workspace }}/_waveshare_src/Pico-DVI-LCD-Code/01-DVI
+          -DPICO_SDK_PATH=${{ env.PICO_SDK_PATH }}
+          -DPICO_BOARD=${{ env.PICO_BOARD }}
+          -DPICO_PLATFORM=${{ env.PICO_PLATFORM }}
+          -DPICO_COPY_TO_RAM=0
+          -DDVI_DEFAULT_SERIAL_CONFIG=${{ env.DVI_DEFAULT_SERIAL_CONFIG }}
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build All Demos
+        run: |
+          cmake --build build -- -j$(nproc)
+
+      - name: Collect All UF2s
+        run: |
+          mkdir -p all-uf2s
+          find build -name "*.uf2" -exec cp {} all-uf2s/ \;
+          ls -lh all-uf2s/
+
+      - name: Upload All UF2s
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-demos-uf2
+          path: all-uf2s/
+          compression-level: 0
+
+  release:
+    needs: [build]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download all UF2 artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release Bundle
+        run: |
+          mkdir -p release
+          for dir in *-uf2/; do
+            if [ -d "$dir" ]; then
+              cp "$dir"/*.uf2 release/
+            fi
+          done
+          cd release
+          sha256sum *.uf2 > checksums.txt
+          echo "Release bundle contents:" > inventory.txt
+          ls -lh *.uf2 >> inventory.txt
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: release/
+          compression-level: 9

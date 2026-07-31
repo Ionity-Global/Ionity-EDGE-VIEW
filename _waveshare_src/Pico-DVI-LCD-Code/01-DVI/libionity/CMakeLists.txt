@@ -12,6 +12,8 @@ target_sources(libionity INTERFACE
 	${CMAKE_CURRENT_LIST_DIR}/ionity_pixels.h
 	${CMAKE_CURRENT_LIST_DIR}/ionity_brand.c
 	${CMAKE_CURRENT_LIST_DIR}/ionity_brand.h
+	${CMAKE_CURRENT_LIST_DIR}/ionity_http.c
+	${CMAKE_CURRENT_LIST_DIR}/ionity_http.h
 )
 
 target_include_directories(libionity INTERFACE ${CMAKE_CURRENT_LIST_DIR})
