@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "ionity_mirror_encode.h"
 
 /*
  * Live screen mirror.
@@ -30,9 +31,6 @@
  */
 
 #define IONITY_MIRROR_PORT    4244
-#define IONITY_MIRROR_WIDTH   160
-#define IONITY_MIRROR_HEIGHT  120
-#define IONITY_MIRROR_PACKED  (IONITY_MIRROR_WIDTH * IONITY_MIRROR_HEIGHT / 2)
 
 bool ionity_mirror_init(uint16_t port);
 

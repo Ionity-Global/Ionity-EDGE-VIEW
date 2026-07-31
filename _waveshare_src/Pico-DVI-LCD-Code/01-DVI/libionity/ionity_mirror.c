@@ -1,4 +1,5 @@
 #include "ionity_mirror.h"
+#include "ionity_mirror_encode.h"
 
 #include <string.h>
 #include "lwip/tcp.h"
@@ -85,48 +86,8 @@ bool ionity_mirror_init(uint16_t port) {
     return true;
 }
 
-/* Sample one pixel out of each 4x4 block straight from the three bit planes. */
-static void downscale(const uint8_t *fb, uint16_t fb_w, uint16_t fb_h) {
-    const uint32_t width_bytes = fb_w / 8u;
-    const uint32_t plane = width_bytes * fb_h;
-    const uint16_t step_x = fb_w / IONITY_MIRROR_WIDTH;
-    const uint16_t step_y = fb_h / IONITY_MIRROR_HEIGHT;
-
-    uint8_t *out = packed;
-    for (uint16_t oy = 0; oy < IONITY_MIRROR_HEIGHT; oy++) {
-        const uint32_t row = (uint32_t)(oy * step_y) * width_bytes;
-        for (uint16_t ox = 0; ox < IONITY_MIRROR_WIDTH; ox += 2) {
-            uint8_t pair = 0;
-            for (uint8_t half = 0; half < 2; half++) {
-                const uint16_t sx = (uint16_t)((ox + half) * step_x);
-                const uint32_t addr = row + (sx >> 3);
-                const uint8_t mask = (uint8_t)(1u << (sx & 7u));
-                uint8_t v = 0;
-                if (fb[addr] & mask)             v |= 1u;   /* blue  */
-                if (fb[addr + plane] & mask)     v |= 2u;   /* green */
-                if (fb[addr + 2u * plane] & mask) v |= 4u;  /* red   */
-                pair = (uint8_t)((pair << 4) | v);
-            }
-            *out++ = pair;
-        }
-    }
-}
-
-/* Returns encoded length, or 0 if RLE would not be smaller than raw. */
-static uint16_t rle_encode(uint8_t *dst, uint16_t cap) {
-    uint16_t o = 0;
-    uint32_t i = 0;
-    while (i < IONITY_MIRROR_PACKED) {
-        const uint8_t v = packed[i];
-        uint32_t run = 1;
-        while (run < 255 && i + run < IONITY_MIRROR_PACKED && packed[i + run] == v) run++;
-        if (o + 2 > cap) return 0;
-        dst[o++] = (uint8_t)run;
-        dst[o++] = v;
-        i += run;
-    }
-    return o;
-}
+/* Sampling and RLE live in ionity_mirror_encode.c so they can be tested on a
+ * host without a board. See tools/mirror_test.c. */
 
 void ionity_mirror_tick(const uint8_t *framebuf, uint16_t fb_width, uint16_t fb_height) {
     if (!viewer || !framebuf) return;
@@ -142,10 +103,10 @@ void ionity_mirror_tick(const uint8_t *framebuf, uint16_t fb_width, uint16_t fb_
     }
 
     last_send_ms = now;
-    downscale(framebuf, fb_width, fb_height);
+    ionity_mirror_downscale(framebuf, fb_width, fb_height, packed);
 
     uint8_t *payload = encoded + HEADER_BYTES;
-    uint16_t len = rle_encode(payload, IONITY_MIRROR_PACKED);
+    uint16_t len = ionity_mirror_rle(packed, payload, IONITY_MIRROR_PACKED);
     uint8_t format = 0;
     if (len == 0) {
         memcpy(payload, packed, IONITY_MIRROR_PACKED);

@@ -28,6 +28,8 @@ target_sources(libionity INTERFACE
 	${CMAKE_CURRENT_LIST_DIR}/ionity_scene.h
 	${CMAKE_CURRENT_LIST_DIR}/ionity_mirror.c
 	${CMAKE_CURRENT_LIST_DIR}/ionity_mirror.h
+	${CMAKE_CURRENT_LIST_DIR}/ionity_mirror_encode.c
+	${CMAKE_CURRENT_LIST_DIR}/ionity_mirror_encode.h
 )
 
 target_include_directories(libionity INTERFACE ${CMAKE_CURRENT_LIST_DIR})

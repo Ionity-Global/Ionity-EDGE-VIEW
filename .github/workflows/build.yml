@@ -26,6 +26,26 @@ env:
   DVI_DEFAULT_SERIAL_CONFIG: pico_sock_cfg
 
 jobs:
+  # The mirror encoder is pure logic, so it is tested on the host — no board
+  # needed to catch a bit-order or packing regression.
+  mirror-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run the encoder test
+        run: |
+          cd _waveshare_src/Pico-DVI-LCD-Code/01-DVI
+          gcc -O2 -Wall -Wextra -I libionity \
+            tools/mirror_test.c libionity/ionity_mirror_encode.c -o /tmp/mirror_test
+          /tmp/mirror_test
+      - name: Check the browser decoder against the C encoder
+        run: |
+          cd _waveshare_src/Pico-DVI-LCD-Code/01-DVI
+          gcc -O2 -I libionity \
+            tools/mirror_vector.c libionity/ionity_mirror_encode.c -o /tmp/mirror_vector
+          /tmp/mirror_vector > /tmp/vector.txt
+          node tools/decode_check.mjs /tmp/vector.txt
+
   build:
     runs-on: ubuntu-24.04
     strategy:
