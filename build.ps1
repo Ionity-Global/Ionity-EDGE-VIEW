@@ -65,14 +65,14 @@ Write-Step "Configuring with CMake (RP2350)..."
 Push-Location $buildDir
 
 if ($useVcvars) {
-    $cmakeCmd = "cd /d ""$buildDir"" && call ""$vcvars"" x64 >nul 2>&1 && cmake -G Ninja ""-DPICO_SDK_PATH=$sdkDir"" -DPICO_BOARD=pico2_w -DPICO_PLATFORM=rp2350 -DPICO_COPY_TO_RAM=1 -DDVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg -DCMAKE_BUILD_TYPE=Release ""$srcDir"""
+    $cmakeCmd = "cd /d ""$buildDir"" && call ""$vcvars"" x64 >nul 2>&1 && cmake -G Ninja ""-DPICO_SDK_PATH=$sdkDir"" -DPICO_BOARD=pico2_w -DPICO_PLATFORM=rp2350 -DPICO_COPY_TO_RAM=0 -DDVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg -DCMAKE_BUILD_TYPE=Release ""$srcDir"""
     cmd /c $cmakeCmd
 } else {
     cmake -G Ninja `
         "-DPICO_SDK_PATH=$sdkDir" `
         -DPICO_BOARD=pico2_w `
         -DPICO_PLATFORM=rp2350 `
-        -DPICO_COPY_TO_RAM=1 `
+        -DPICO_COPY_TO_RAM=0 `
         -DDVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg `
         -DCMAKE_BUILD_TYPE=Release `
         "$srcDir"

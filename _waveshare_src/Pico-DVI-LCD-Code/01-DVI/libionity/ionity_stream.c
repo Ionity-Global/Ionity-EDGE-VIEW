@@ -25,6 +25,11 @@ static void close_client(struct tcp_pcb *pcb) {
     tcp_close(pcb);
 }
 
+static void close_client_err(void *arg, err_t err) {
+    (void)err;
+    close_client((struct tcp_pcb *)arg);
+}
+
 static err_t stream_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err) {
     if (p == NULL) {
         close_client(pcb);
@@ -65,7 +70,7 @@ static err_t stream_accept(void *arg, struct tcp_pcb *new_pcb, err_t err) {
         if (client_pcbs[i] == NULL) {
             client_pcbs[i] = new_pcb;
             tcp_recv(new_pcb, stream_recv);
-            tcp_err(new_pcb, close_client);
+            tcp_err(new_pcb, close_client_err);
 
             const char *banner = "{\"type\":\"hello\",\"device\":\"Station Pico\"}\n";
             tcp_write(new_pcb, banner, strlen(banner), TCP_WRITE_FLAG_COPY);

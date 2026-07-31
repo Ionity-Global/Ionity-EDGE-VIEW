@@ -152,14 +152,13 @@ if (-not $SkipBuild) {
 
     $vcvarsBat = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
     if (Test-Path $vcvarsBat) {
-        $cmakeCmd = "cd /d ""$buildDir"" && call ""$vcvarsBat"" x64 >nul 2>&1 && cmake -G Ninja ""-DPICO_SDK_PATH=$sdkDir"" -DPICO_BOARD=pico2_w -DPICO_PLATFORM=rp2350 -DPICO_COPY_TO_RAM=1 -DDVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg -DCMAKE_BUILD_TYPE=Release ""$srcDir"""
+        $cmakeCmd = "cd /d ""$buildDir"" && call ""$vcvarsBat"" x64 >nul 2>&1 && cmake -G Ninja ""-DPICO_SDK_PATH=$sdkDir"" -DPICO_BOARD=pico2_w -DPICO_PLATFORM=rp2350 -DDVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg -DCMAKE_BUILD_TYPE=Release ""$srcDir"""
         cmd /c $cmakeCmd
     } else {
         cmake -G Ninja `
             "-DPICO_SDK_PATH=$sdkDir" `
             -DPICO_BOARD=pico2_w `
             -DPICO_PLATFORM=rp2350 `
-            -DPICO_COPY_TO_RAM=1 `
             -DDVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg `
             -DCMAKE_BUILD_TYPE=Release `
             "$srcDir"

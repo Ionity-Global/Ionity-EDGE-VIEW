@@ -181,19 +181,13 @@ void core1_main(void) {
 int main(void) {
     vreg_set_voltage(VREG_VSEL);
     sleep_ms(10);
-    set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
     setup_default_uart();
-
-    dvi0.timing = &DVI_TIMING;
-    dvi0.ser_cfg = DVI_DEFAULT_SERIAL_CONFIG;
-    dvi_init(&dvi0, next_striped_spin_lock_num(), next_striped_spin_lock_num());
-
-    Paint_NewImage(framebuf, FRAME_WIDTH, FRAME_HEIGHT, 0, SCALE3_BLACK);
-    Paint_SetScale(3);
 
     printf("Station Pico - IO-nity SDK starting...\n");
 
-    /* ---- WiFi init ---- */
+    /* ---- WiFi init at default 125 MHz clock ---- *
+     * Must happen BEFORE set_sys_clock_khz() because
+     * the CYW43 SPI can't communicate at 252 MHz.  */
     if (ionity_wifi_init()) {
         printf("WiFi driver initialized. Connecting to %s...\n", IONITY_WIFI_SSID);
         if (ionity_wifi_connect_default()) {
@@ -213,6 +207,16 @@ int main(void) {
     } else {
         printf("Stream server init failed.\n");
     }
+
+    /* ---- Switch to DVI clock (252 MHz) ---- */
+    set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
+
+    dvi0.timing = &DVI_TIMING;
+    dvi0.ser_cfg = DVI_DEFAULT_SERIAL_CONFIG;
+    dvi_init(&dvi0, next_striped_spin_lock_num(), next_striped_spin_lock_num());
+
+    Paint_NewImage(framebuf, FRAME_WIDTH, FRAME_HEIGHT, 0, SCALE3_BLACK);
+    Paint_SetScale(3);
 
     /* ---- Launch DVI on core 1 ---- */
     multicore_launch_core1(core1_main);

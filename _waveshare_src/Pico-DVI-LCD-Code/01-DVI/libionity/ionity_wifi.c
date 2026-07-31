@@ -52,7 +52,7 @@ void ionity_wifi_poll(void) {
     cyw43_arch_poll();
 
     if (wifi_info.state == IONITY_WIFI_CONNECTED) {
-        int rssi_val;
+        int32_t rssi_val;
         if (cyw43_wifi_get_rssi(&cyw43_state, &rssi_val) == 0) {
             wifi_info.rssi = (int8_t)rssi_val;
         }

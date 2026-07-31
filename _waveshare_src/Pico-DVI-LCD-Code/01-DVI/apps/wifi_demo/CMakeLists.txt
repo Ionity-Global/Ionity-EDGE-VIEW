@@ -11,9 +11,6 @@ target_compile_definitions(wifi_demo PRIVATE
     PARAM_ASSERTIONS_ENABLED_ALL=1
     PICO_CYW43_ARCH_THREADSAFE_BACKGROUND=1
     CYW43_LWIP=1
-    LWIP_HTTPD_CGI=0
-    LWIP_HTTPD_SSI=0
-    LWIP_HTTPD_SUPPORT_POST=0
 )
 
 target_include_directories(wifi_demo PRIVATE

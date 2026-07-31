@@ -33,7 +33,6 @@ if not exist "%BUILD_DIR%\CMakeCache.txt" (
         -DPICO_SDK_PATH="%SDK_DIR%" ^
         -DPICO_BOARD=pico2_w ^
         -DPICO_PLATFORM=rp2350 ^
-        -DPICO_COPY_TO_RAM=1 ^
         -DDVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg ^
         -DCMAKE_BUILD_TYPE=Release ^
         -DPICO_TOOLCHAIN_PATH="%ARM_GCC_BIN%" ^
