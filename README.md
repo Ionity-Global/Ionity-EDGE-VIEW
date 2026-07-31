@@ -133,7 +133,7 @@ libsprite/          sprite rendering
 apps/edgeview/      the flagship app
 StationPicoInstaller/  EDGE-VIEW Studio (.NET MAUI) — the server
 docs/app/           the web console
-server_app/         deprecated Python bridge, superseded by Studio
+attic/server_app/   retired Python bridge, kept for headless/Linux setups
 ```
 
 ## WiFi
