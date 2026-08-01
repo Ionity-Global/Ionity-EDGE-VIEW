@@ -186,7 +186,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Add firmware to the desktop app
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: edgeview-uf2
           path: docs/app/firmware
@@ -224,7 +224,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download all UF2 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
 
       - name: Create Release Bundle
         run: |
