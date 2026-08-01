@@ -24,7 +24,7 @@ flowchart LR
 | Surface | What it is | Where |
 |---|---|---|
 | **Web Console** | Browser control surface: reset, reflash over USB, live WiFi stream, scene editor, AI | [`docs/app/`](docs/app) → GitHub Pages `/app/` |
-| **EDGE-VIEW Studio** | The server. Toolchain installer, feed scheduler, device control, message board, bridge | [`StationPicoInstaller/`](StationPicoInstaller) |
+| **EDGE-VIEW app** | One-file Windows server, feed scheduler, AI, device control, and embedded web console | [`EdgeViewHost/`](EdgeViewHost) |
 | **Device HTTP** | The Pico's own page and message board, QR-linked from the screen | `http://<pico-ip>/` |
 
 ## Hardware
@@ -78,7 +78,14 @@ local source. Full command list in [Stream Protocol](docs/wiki/Stream-Protocol.m
 
 ## Quick start
 
-### Prerequisites
+### Install the Windows app
+
+[Download EDGE-VIEW Setup](https://github.com/Ionity-Global/Ionity-EDGE-VIEW/releases/download/edgeview-latest/EdgeView-Setup.exe)
+and run it. The single executable installs or updates EDGE-VIEW for the current
+Windows user, registers the web console launcher, adds a Start Menu entry, and
+opens the app. No ZIP extraction or .NET runtime is required.
+
+### Build firmware from source
 
 Windows 10/11 · Git · CMake 3.12+ · Ninja · Visual Studio Build Tools 2022 (host tools).
 The ARM GCC toolchain and Pico SDK are downloaded for you.
@@ -111,8 +118,8 @@ CMake + Ninja against Pico SDK 2.1.1.
 - `rebuild.bat` — clean rebuild of `edgeview`
 - `setup.bat` / `setup.ps1` — first-time dependency install
 
-CI builds every target on push and publishes the UF2s to GitHub Pages, so the
-web console can always flash the latest `master`.
+CI builds every target on push, embeds the matching UF2 in the Windows app,
+publishes a rolling installer release, and deploys the UF2s to GitHub Pages.
 
 ## Layout
 
@@ -131,7 +138,8 @@ libgui/             Waveshare drawing primitives
 libsprite/          sprite rendering
 
 apps/edgeview/      the flagship app
-StationPicoInstaller/  EDGE-VIEW Studio (.NET MAUI) — the server
+EdgeViewHost/           self-contained EDGE-VIEW Windows app
+StationPicoInstaller/  source-build and hardware setup GUI
 docs/app/           the web console
 attic/server_app/   retired Python bridge, kept for headless/Linux setups
 ```

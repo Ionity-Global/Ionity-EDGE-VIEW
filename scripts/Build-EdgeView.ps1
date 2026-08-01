@@ -75,6 +75,35 @@ if ($Test) {
     }
 }
 
+# Stage firmware first so the single-file desktop publish embeds the same UF2
+# offered by the repo and browser console.
+if ($Firmware) {
+    Head 'Firmware'
+    & (Join-Path $root 'build_native.bat') | Out-Null
+    $uf2 = Join-Path $root '_waveshare_src\Pico-DVI-LCD-Code\01-DVI\build_rp2350\apps\edgeview\edgeview.uf2'
+    if (-not (Test-Path $uf2)) { Say 'Firmware build produced no UF2' Red; exit 1 }
+
+    $firmwareDirs = @(
+        (Join-Path $root 'docs\app\firmware'),
+        (Join-Path $root 'web\firmware')
+    )
+    $bytes = (Get-Item $uf2).Length
+    $manifest = @{
+        commit = (git describe --always --dirty 2>$null)
+        built  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        board  = 'pico2_w'
+        builds = @(@{ name = 'edgeview'; file = 'edgeview.uf2'; size = $bytes })
+    } | ConvertTo-Json -Depth 4
+
+    foreach ($dir in $firmwareDirs) {
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+        Copy-Item $uf2 (Join-Path $dir 'edgeview.uf2') -Force
+        $manifest | Set-Content (Join-Path $dir 'manifest.json')
+    }
+    Copy-Item $uf2 (Join-Path $root 'edgeview.uf2') -Force
+    Say "edgeview.uf2 staged and ready to embed ($([math]::Round($bytes/1KB)) KB)" Green
+}
+
 Head 'Publishing the master executable'
 $publish = Join-Path $env:TEMP 'edgeview-publish'
 Remove-Item $publish -Recurse -Force -ErrorAction SilentlyContinue
@@ -96,28 +125,6 @@ if (-not (Test-Path $built)) { Say 'Publish produced no executable.' Red; exit 1
 Copy-Item $built $target -Force
 $size = [math]::Round((Get-Item $target).Length / 1MB, 1)
 Say "$exeName refreshed ($size MB, $config)" Green
-
-# Firmware images live beside the exe so the browser flasher can serve them.
-$webFirmware = Join-Path $root 'web\firmware'
-if ($Firmware) {
-    Head 'Firmware'
-    & (Join-Path $root 'build_native.bat') | Out-Null
-    $uf2 = Join-Path $root '_waveshare_src\Pico-DVI-LCD-Code\01-DVI\build_rp2350\apps\edgeview\edgeview.uf2'
-    if (Test-Path $uf2) {
-        New-Item -ItemType Directory -Force -Path $webFirmware | Out-Null
-        Copy-Item $uf2 (Join-Path $webFirmware 'edgeview.uf2') -Force
-        $bytes = (Get-Item $uf2).Length
-        @{
-            commit = (git rev-parse --short HEAD 2>$null)
-            built  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-            board  = 'pico2_w'
-            builds = @(@{ name = 'edgeview'; file = 'edgeview.uf2'; size = $bytes })
-        } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $webFirmware 'manifest.json')
-        Say "edgeview.uf2 staged for the browser flasher ($([math]::Round($bytes/1KB)) KB)" Green
-    } else {
-        Say 'Firmware build produced no UF2' Yellow
-    }
-}
 
 Head 'Done'
 Say "Run it:  .\$exeName"

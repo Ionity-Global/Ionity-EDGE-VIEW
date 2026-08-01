@@ -151,11 +151,15 @@ static int pm_bfs_dir(int sx, int sy, const uint8_t blocked[PM_H][PM_W],
     /* Walk back from goal to the step adjacent to start. */
     int cx = goal % PM_W, cy = goal / PM_W;
     while (bfs_dist[cy][cx] > 1) {
+        bool found_parent = false;
         for (int d = 0; d < 4; d++) {
             int nx = cx + DX[d], ny = cy + DY[d];
             if (nx >= 0 && nx < PM_W && ny >= 0 && ny < PM_H &&
-                bfs_dist[ny][nx] == bfs_dist[cy][cx] - 1) { cx = nx; cy = ny; break; }
+                bfs_dist[ny][nx] == bfs_dist[cy][cx] - 1) {
+                cx = nx; cy = ny; found_parent = true; break;
+            }
         }
+        if (!found_parent) return -1;
     }
     for (int d = 0; d < 4; d++)
         if (sx + DX[d] == cx && sy + DY[d] == cy) return d;
@@ -306,7 +310,7 @@ static void pm_tick(void) {
         if (g->respawn > 0) { g->respawn--; continue; }
         int gspeed = speed;
         if (fright_timer > 0 && (pm_frame & 1)) gspeed = 0;       /* frightened 50% */
-        else if ((pm_frame & 7) == 7) gspeed = speed - 1;         /* normal 87% */
+        else if ((pm_frame & 7) == 7) gspeed = 0;                 /* normal 87%, grid-aligned */
         if (gspeed == 0) continue;
         if (pm_aligned(g)) pm_pick_ghost_dir(i);
         if (!pm_wall(pm_tx(g) + ((g->px % pm_ts) ? 0 : DX[g->dir]),

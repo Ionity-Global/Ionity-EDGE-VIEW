@@ -84,6 +84,11 @@ bool ionity_wifi_clear_creds(void) {
 }
 
 void ionity_wifi_start_ap(void) {
+    /* Cancel any in-flight STA join and stop the background reconnects first —
+     * flipping to AP mid-join wedges the driver. */
+    cyw43_wifi_leave(&cyw43_state, CYW43_ITF_STA);
+    active_ssid[0] = '\0';
+    sleep_ms(100);
     cyw43_arch_enable_ap_mode("IO-nity-Setup", "ionity123", CYW43_AUTH_WPA2_AES_PSK);
     wifi_info.state = IONITY_WIFI_AP_MODE;
     strncpy(wifi_info.ssid, "IO-nity-Setup", sizeof(wifi_info.ssid) - 1);
@@ -243,6 +248,10 @@ void ionity_wifi_poll(void) {
                 printf("[wifi] reconnected: %s\n", wifi_info.ip_addr);
             }
         } else if (link < 0 || now - last_reconnect_ms > 30000) {
+            /* Say WHY: -1 fail, -2 no net found, -3 bad auth. */
+            printf("[wifi] join '%s' failed (link=%d%s)\n", active_ssid, link,
+                   link == CYW43_LINK_NONET ? " not-found/5GHz?" :
+                   link == CYW43_LINK_BADAUTH ? " bad-password" : "");
             wifi_info.state = IONITY_WIFI_DISCONNECTED;   /* try again next window */
         }
     }

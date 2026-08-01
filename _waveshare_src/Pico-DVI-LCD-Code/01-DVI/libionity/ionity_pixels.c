@@ -7,11 +7,17 @@
 #define SCALE3_BLACK  0x0
 #define SCALE3_WHITE  0x7
 
-void ionity_fill_rect_fast(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color) {
-    if (x0 > x1) { uint16_t t = x0; x0 = x1; x1 = t; }
-    if (y0 > y1) { uint16_t t = y0; y0 = y1; y1 = t; }
-    for (uint16_t y = y0; y <= y1; y++) {
-        for (uint16_t x = x0; x <= x1; x++) {
+void ionity_fill_rect_fast(int x0, int y0, int x1, int y1, uint8_t color) {
+    if (x0 > x1) { int t = x0; x0 = x1; x1 = t; }
+    if (y0 > y1) { int t = y0; y0 = y1; y1 = t; }
+    if (Paint.Width == 0 || Paint.Height == 0 ||
+        x1 < 0 || y1 < 0 || x0 >= Paint.Width || y0 >= Paint.Height) return;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 >= Paint.Width) x1 = Paint.Width - 1;
+    if (y1 >= Paint.Height) y1 = Paint.Height - 1;
+    for (int y = y0; y <= y1; y++) {
+        for (int x = x0; x <= x1; x++) {
             Paint_SetPixel(x, y, color);
         }
     }

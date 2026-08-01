@@ -12,7 +12,7 @@
 
   <!-- The web console is compiled in, so the host needs no files on disk. -->
   <ItemGroup>
-    <EmbeddedResource Include="..\docs\app\**\*" Exclude="..\docs\app\firmware\**">
+    <EmbeddedResource Include="..\docs\app\**\*">
       <LogicalName>EdgeView.Web.$([System.String]::Copy('%(RecursiveDir)%(Filename)%(Extension)').Replace('\','.').Replace('/','.'))</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="..\docs\assets\ionity_logo.ico" LogicalName="EdgeView.Web.assets.ionity_logo.ico" />

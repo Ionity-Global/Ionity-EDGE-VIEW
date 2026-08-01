@@ -1,42 +1,12 @@
 {
-  "commit": "df79e7e",
-  "built": "2026-07-31T12:48:01Z",
-  "board": "pico2_w",
-  "builds": [
-    {
-      "size": 945664,
-      "name": "edgeview",
-      "file": "edgeview.uf2"
-    },
-    {
-      "size": 68608,
-      "name": "demo_colors",
-      "file": "demo_colors.uf2"
-    },
-    {
-      "size": 58880,
-      "name": "demo_bounce",
-      "file": "demo_bounce.uf2"
-    },
-    {
-      "size": 79360,
-      "name": "demo_sysinfo",
-      "file": "demo_sysinfo.uf2"
-    },
-    {
-      "size": 61440,
-      "name": "demo_rainbow",
-      "file": "demo_rainbow.uf2"
-    },
-    {
-      "size": 108032,
-      "name": "gui_demo",
-      "file": "gui_demo.uf2"
-    },
-    {
-      "size": 423424,
-      "name": "hello_dvi",
-      "file": "hello_dvi.uf2"
-    }
-  ]
+    "builds":  [
+                   {
+                       "name":  "edgeview",
+                       "file":  "edgeview.uf2",
+                       "size":  953344
+                   }
+               ],
+    "board":  "pico2_w",
+    "commit":  "84eb2db-dirty",
+    "built":  "2026-08-01T00:52:07Z"
 }

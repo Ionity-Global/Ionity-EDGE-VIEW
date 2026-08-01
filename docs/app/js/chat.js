@@ -1,5 +1,5 @@
 /**
- * The floating chat crawl. Messages arrive from the server (Studio relays the
+ * The floating chat crawl. Messages arrive from the server (EDGE-VIEW relays the
  * device message board and anything the AI announces) — the console never
  * invents them, it only scrolls them right to left.
  */

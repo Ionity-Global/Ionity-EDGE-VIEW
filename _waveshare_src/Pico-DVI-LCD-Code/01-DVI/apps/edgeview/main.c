@@ -41,6 +41,7 @@
 #include "ionity_pixels.h"
 #include "ionity_brand.h"
 #include "ionity_http.h"
+#include "ionity_dhcpd.h"
 #include "ionity_time.h"
 #include "ionity_weather.h"
 #include "ionity_game.h"
@@ -87,6 +88,7 @@ struct dvi_inst dvi0;
 static uint32_t g_frame = 0;
 static uint32_t fps_value = 0, fps_last = 0, fps_cnt = 0;
 static bool     net_services_up = false;
+static volatile bool provision_reboot = false;   /* set from lwIP/USB, acted on in loops */
 static char     ai_action[128] = "Waiting for EDGE-VIEW Studio...";
 
 /* ---- Local fallbacks, used only until the server streams its own ---- */
@@ -773,18 +775,125 @@ static void present(void) {
     Paint_SelectImage(draw_buf);
 }
 
+/* ───────────────────── USB serial console + provisioning ─────────────────────
+ * The one control path that needs no network. Newline-terminated commands:
+ *   status                 one status line now
+ *   wifi <ssid>|<pass>     save credentials and reboot onto them
+ *   wifi.clear             forget credentials and reboot
+ *   reboot                 plain reboot
+ */
+static char pending_ssid[33], pending_pass[65];
+
+/* Watchdog breadcrumbs: scratch[4] survives a watchdog reset, so if the loop
+ * wedges the next boot log names the phase that killed it — and the device
+ * recovers on its own instead of hanging until a power cycle. */
+enum {
+    WD_PHASE_NONE = 0,
+    WD_PHASE_WIFI_POLL, WD_PHASE_LED, WD_PHASE_SERIAL, WD_PHASE_TIME,
+    WD_PHASE_WEATHER, WD_PHASE_BEACON, WD_PHASE_RENDER, WD_PHASE_PRESENT,
+    WD_PHASE_MIRROR, WD_PHASE_AP_START, WD_PHASE_NET_UP, WD_PHASE_FLASH,
+};
+static const char *wd_phase_name[] = {
+    "none", "wifi_poll", "led", "serial", "time",
+    "weather", "beacon", "render", "present",
+    "mirror", "ap_start", "net_up", "flash",
+};
+#define WD_MARK(ph) watchdog_hw->scratch[4] = (ph)
+
+static void wd_report_and_arm(void) {
+    if (watchdog_caused_reboot()) {
+        uint32_t ph = watchdog_hw->scratch[4];
+        if (ph != WD_PHASE_NONE)   /* deliberate reboots clear the mark */
+             printf("[wd] recovered from wedge in phase '%s' (%lu)\n",
+                 ph < count_of(wd_phase_name) ? wd_phase_name[ph] : "?",
+                 (unsigned long)ph);
+    }
+    WD_MARK(WD_PHASE_NONE);
+    watchdog_enable(8000, 1);   /* 8 s: generous vs the ~150 ms loop */
+}
+
+static void reboot_now(const char *why) {
+    printf("[con] %s - rebooting\n", why);
+    sleep_ms(150);                        /* let the USB line flush */
+    WD_MARK(WD_PHASE_NONE);               /* deliberate: don't report a wedge */
+    watchdog_enable(1, 1);
+    while (1) tight_loop_contents();
+}
+
+static void serial_exec(char *cmd) {
+    if (strcmp(cmd, "status") == 0) {
+        ionity_wifi_info_t w = ionity_wifi_get_info();
+        printf("[con] state=%d ssid='%s' ip=%s saved=%d\n",
+               (int)w.state, w.ssid, w.ip_addr[0] ? w.ip_addr : "-",
+               (int)ionity_wifi_has_saved_creds());
+    } else if (strcmp(cmd, "wifi.clear") == 0) {
+        ionity_wifi_clear_creds();
+        reboot_now("credentials cleared");
+    } else if (strncmp(cmd, "wifi ", 5) == 0) {
+        char *ssid = cmd + 5;
+        char *pass = strchr(ssid, '|');
+        if (!pass) { printf("[con] usage: wifi <ssid>|<pass>\n"); return; }
+        *pass++ = '\0';
+        if (ionity_wifi_save_creds(ssid, pass)) reboot_now("credentials saved");
+        printf("[con] flash save failed\n");
+    } else if (strcmp(cmd, "reboot") == 0) {
+        reboot_now("requested");
+    } else if (cmd[0]) {
+        printf("[con] commands: status | wifi <ssid>|<pass> | wifi.clear | reboot\n");
+    }
+}
+
+static void serial_poll(void) {
+    static char line[128];
+    static int  len = 0;
+    for (;;) {
+        int c = getchar_timeout_us(0);
+        if (c == PICO_ERROR_TIMEOUT) return;
+        if (c == '\r' || c == '\n') {
+            line[len] = '\0';
+            if (len) serial_exec(line);
+            len = 0;
+            continue;
+        }
+        if (len < (int)sizeof(line) - 1) line[len++] = (char)c;
+    }
+}
+
+/* lwIP callback context: only stash and flag — flash writes happen in the
+ * main loop, then we reboot onto the new network. */
+static void on_provision(const char *ssid, const char *pass) {
+    snprintf(pending_ssid, sizeof(pending_ssid), "%s", ssid);
+    snprintf(pending_pass, sizeof(pending_pass), "%s", pass);
+    provision_reboot = true;
+}
+
+/* Enter provisioning: AP is already up; add DHCP/DNS and the setup page. */
+static void provisioning_services_up(void) {
+    ionity_dhcpd_start();
+    ionity_http_set_provisioning(true);
+    ionity_http_set_provision_handler(on_provision);
+    printf("[ap] join 'IO-nity-Setup' (pass ionity123) then open http://192.168.4.1\n");
+}
+
 int main(void) {
     vreg_set_voltage(VREG_VSEL); sleep_ms(10);
     stdio_init_all();
     /* USB CDC needs a moment to enumerate before the first line is worth
      * anything, and the boot log is the only view into a dead screen. */
     sleep_ms(2500);
-    printf("IO-nity EDGE-VIEW v2.1 (server-driven)\n");
+    printf("IO-nity EDGE-VIEW v2.2 (server-driven)\n");
+    wd_report_and_arm();
 
     ionity_data_init();
     ionity_scene_init();
     register_panels();
     apply_default_layout();
+
+    /* Clock BEFORE radio: cyw43's PIO SPI is calibrated against clk_sys at
+     * init. Switching to the DVI clock mid-join corrupts that timing and can
+     * wedge core 0 — the radio must come up after the switch. */
+    set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
+    printf("Clock: %d MHz\n", (int)(DVI_TIMING.bit_clk_khz / 1000));
 
     printf("WiFi...\n");
     bool have_creds = ionity_wifi_begin();
@@ -792,9 +901,6 @@ int main(void) {
         printf("No credentials — starting provisioning AP\n");
         ionity_wifi_start_ap();
     }
-
-    set_sys_clock_khz(DVI_TIMING.bit_clk_khz, true);
-    printf("Clock: %d MHz\n", (int)(DVI_TIMING.bit_clk_khz / 1000));
 
     dvi0.timing = &DVI_TIMING;
     dvi0.ser_cfg = DVI_DEFAULT_SERIAL_CONFIG;
@@ -811,13 +917,21 @@ int main(void) {
         core1_running = true;
         if (ionity_http_init(IONITY_HTTP_PORT))
             printf("HTTP on :%d (provisioning)\n", IONITY_HTTP_PORT);
-        while (w.state == IONITY_WIFI_AP_MODE) {
-            ionity_wifi_poll();
-            w = ionity_wifi_get_info();
-            sleep_ms(100);
+        provisioning_services_up();
+        while (1) {
+            watchdog_update();
+            WD_MARK(WD_PHASE_WIFI_POLL);  ionity_wifi_poll();
+            WD_MARK(WD_PHASE_SERIAL);     serial_poll();
+            if (provision_reboot) {
+                provision_reboot = false;
+                WD_MARK(WD_PHASE_FLASH);
+                if (ionity_wifi_save_creds(pending_ssid, pending_pass))
+                    reboot_now("provisioned");
+                printf("[ap] flash save failed\n");
+            }
+            WD_MARK(WD_PHASE_NONE);
+            sleep_ms(50);
         }
-        watchdog_enable(100, 1);
-        while (1) { tight_loop_contents(); }
     }
 
     draw_splash();
@@ -854,13 +968,23 @@ int main(void) {
     printf("Ready. Waiting for WiFi...\n");
 
     while (1) {
-        ionity_wifi_poll();
-        ionity_wifi_led_status();
-        ionity_time_poll();
-        ionity_weather_poll();
-        ionity_beacon_poll();
+        watchdog_update();
+        WD_MARK(WD_PHASE_WIFI_POLL); ionity_wifi_poll();
+        WD_MARK(WD_PHASE_LED);       ionity_wifi_led_status();
+        WD_MARK(WD_PHASE_SERIAL);    serial_poll();
+        WD_MARK(WD_PHASE_TIME);      ionity_time_poll();
+        WD_MARK(WD_PHASE_WEATHER);   ionity_weather_poll();
+        WD_MARK(WD_PHASE_BEACON);    ionity_beacon_poll();
+
+        if (provision_reboot) {
+            provision_reboot = false;
+            WD_MARK(WD_PHASE_FLASH);
+            if (ionity_wifi_save_creds(pending_ssid, pending_pass))
+                reboot_now("provisioned");
+        }
 
         if (!net_services_up && ionity_wifi_is_connected()) {
+            WD_MARK(WD_PHASE_NET_UP);
             ionity_time_init();
             ionity_weather_init();
             net_services_up = true;
@@ -872,13 +996,19 @@ int main(void) {
             to_ms_since_boot(get_absolute_time()) > 45000) {
             ap_fallback_done = true;
             printf("[wifi] join failed for 45s - starting provisioning AP\n");
+            WD_MARK(WD_PHASE_AP_START);
             ionity_wifi_start_ap();
+            provisioning_services_up();
         }
 
+        WD_MARK(WD_PHASE_RENDER);
         Paint_Clear(SCALE3_BLACK);
         ionity_scene_render();
+        WD_MARK(WD_PHASE_PRESENT);
         present();
+        WD_MARK(WD_PHASE_MIRROR);
         ionity_mirror_tick(scan_buf, FRAME_WIDTH, FRAME_HEIGHT);
+        WD_MARK(WD_PHASE_NONE);
 
         fps_cnt++;
         uint32_t n = to_ms_since_boot(get_absolute_time());

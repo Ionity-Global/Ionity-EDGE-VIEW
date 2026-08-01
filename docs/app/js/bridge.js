@@ -1,5 +1,5 @@
 /**
- * Client for the EDGE-VIEW Studio bridge (http://127.0.0.1:8787).
+ * Client for the EDGE-VIEW app bridge (http://127.0.0.1:8787).
  *
  * The console is served over HTTPS from GitHub Pages; browsers exempt
  * loopback from mixed-content blocking, so this works from the public page.
@@ -39,7 +39,7 @@ export const bridge = {
   },
 
   async call(path, body) {
-    if (!this.token) throw new Error('not paired — enter the token from Studio');
+    if (!this.token) throw new Error('not paired — use the installed EDGE-VIEW app for automatic pairing');
     const r = await fetch(BASE + path, {
       method: body === undefined ? 'GET' : 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Edgeview-Token': this.token },

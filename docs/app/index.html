@@ -17,7 +17,7 @@
   <b>No server.</b>
   <span>Nothing on this page can reach the display until EDGE-VIEW is running.</span>
   <button id="btnBannerStart" class="primary">Start EDGE-VIEW</button>
-  <a class="btn" href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/releases/latest" target="_blank" rel="noopener">Download</a>
+  <a class="btn" href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/releases/download/edgeview-latest/EdgeView-Setup.exe">Install EDGE-VIEW</a>
   <button id="btnBannerRetry" class="ghost">Retry</button>
 </div>
 
@@ -61,18 +61,18 @@
   <section class="card span2" id="cardServer">
     <h2>① Server</h2>
     <p class="hint">
-      The console is only a control surface. The <b>server</b> is EDGE-VIEW Studio running on your
+      The console is only a control surface. The <b>server</b> is the EDGE-VIEW app running on your
       machine — it fetches the feeds and streams them into the display. This page talks to it over
       <code>http://127.0.0.1:8787</code>.
     </p>
     <div class="row">
-      <input id="tokenInput" type="password" placeholder="Pairing token from Studio → Control" autocomplete="off" />
+      <input id="tokenInput" type="password" placeholder="Pairing token (automatic in the installed app)" autocomplete="off" />
       <button id="btnPair" class="primary">Pair</button>
       <button id="btnProbe">Probe</button>
     </div>
     <div id="serverState" class="state">Looking for a server…</div>
     <div class="row wrap" id="serverActions">
-      <a class="btn" id="btnDownloadServer" href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/releases/latest" target="_blank" rel="noopener">⬇ Download server</a>
+      <a class="btn" id="btnDownloadServer" href="https://github.com/Ionity-Global/Ionity-EDGE-VIEW/releases/download/edgeview-latest/EdgeView-Setup.exe">⬇ Install EDGE-VIEW</a>
       <button id="btnStartServer">▶ Start server</button>
       <button id="btnFeeds">🔄 Feeds: ?</button>
       <button id="btnDetach" class="ghost">Unpair</button>

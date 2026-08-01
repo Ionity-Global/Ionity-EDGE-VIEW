@@ -133,6 +133,7 @@ jobs:
             libstdc++-arm-none-eabi-newlib
 
       - name: Cache Pico SDK
+        id: cache-sdk
         uses: actions/cache@v4
         with:
           path: ${{ env.PICO_SDK_PATH }}
@@ -176,13 +177,52 @@ jobs:
           path: all-uf2s/
           compression-level: 0
 
-  release:
+  desktop:
     needs: [build]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Add firmware to the desktop app
+        uses: actions/download-artifact@v4
+        with:
+          name: edgeview-uf2
+          path: docs/app/firmware
+      - name: Write embedded firmware manifest
+        shell: pwsh
+        run: |
+          $firmware = Get-Item docs/app/firmware/edgeview.uf2
+          @{
+            commit = $env:GITHUB_SHA
+            built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            board = 'pico2_w'
+            builds = @(@{ name = 'edgeview'; file = 'edgeview.uf2'; size = $firmware.Length })
+          } | ConvertTo-Json -Depth 4 | Set-Content docs/app/firmware/manifest.json
+      - name: Publish self-installing Windows app
+        shell: pwsh
+        run: |
+          dotnet publish EdgeViewHost -c Release -o publish --nologo -v q
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item publish/EdgeView.exe release/EdgeView-Setup.exe
+          Copy-Item publish/EdgeView.exe release/EdgeView.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: release/*
+          compression-level: 0
+
+  release:
+    needs: [build, desktop]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Download all UF2 artifacts
         uses: actions/download-artifact@v4
 
@@ -194,10 +234,11 @@ jobs:
               cp "$dir"/*.uf2 release/
             fi
           done
+          cp desktop-windows/* release/
           cd release
-          sha256sum *.uf2 > checksums.txt
+          sha256sum *.uf2 *.exe > checksums.txt
           echo "Release bundle contents:" > inventory.txt
-          ls -lh *.uf2 >> inventory.txt
+          ls -lh *.uf2 *.exe >> inventory.txt
 
       - name: Upload Release Artifact
         uses: actions/upload-artifact@v4
@@ -205,3 +246,19 @@ jobs:
           name: release-bundle
           path: release/
           compression-level: 9
+
+      - name: Publish rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag -f edgeview-latest "$GITHUB_SHA"
+          git push origin refs/tags/edgeview-latest --force
+          if gh release view edgeview-latest >/dev/null 2>&1; then
+            gh release edit edgeview-latest --title "IO-nity EDGE-VIEW latest" --latest
+            gh release upload edgeview-latest release/* --clobber
+          else
+            gh release create edgeview-latest release/* \
+              --title "IO-nity EDGE-VIEW latest" \
+              --notes "Automated Windows installer, portable application, and Pico 2W firmware." \
+              --latest
+          fi

@@ -40,7 +40,8 @@ device falls back to what it can work out on its own.
 │       ├── libgui/          GUI drawing library
 │       ├── libsprite/       Sprite rendering library
 │       └── apps/            edgeview + demos
-├── StationPicoInstaller/     EDGE-VIEW Studio (.NET MAUI) — the server
+├── EdgeViewHost/             self-contained EDGE-VIEW Windows app
+├── StationPicoInstaller/     source-build and hardware setup GUI
 ├── docs/                     GitHub Pages website
 │   └── app/                  the web console
 ├── .sdk/                     SDK and toolchain (gitignored)

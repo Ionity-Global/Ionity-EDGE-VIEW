@@ -4,9 +4,13 @@ namespace EdgeView.Host;
 
 internal static class Program
 {
+    private const string InstanceMutexName = "Local\\IonityEdgeView.Desktop";
+
     [STAThread]
     private static void Main(string[] args)
     {
+        if (DesktopInstaller.HandleCommand(args)) return;
+
         var dataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "IonityEdgeView");
@@ -25,9 +29,33 @@ internal static class Program
             return;
         }
 
+        using var instanceMutex = new Mutex(true, InstanceMutexName, out var firstInstance);
+        if (!firstInstance)
+        {
+            ActivateExistingWindow();
+            return;
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
     }
+
+    private static void ActivateExistingWindow()
+    {
+        var current = Environment.ProcessId;
+        var existing = System.Diagnostics.Process.GetProcessesByName("EdgeView")
+            .FirstOrDefault(process => process.Id != current && process.MainWindowHandle != IntPtr.Zero);
+        if (existing == null) return;
+
+        ShowWindowAsync(existing.MainWindowHandle, 9);
+        SetForegroundWindow(existing.MainWindowHandle);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindowAsync(IntPtr window, int command);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr window);
 
     private static void ApplyArgs(string[] args)
     {
@@ -65,6 +93,7 @@ internal static class Headless
 
                 EdgeView.exe               Open the application window
                 EdgeView.exe --headless    Run the server with no window
+                EdgeView-Setup.exe         Install or update the application
 
                 --device <ip>      Device address (otherwise found by beacon)
                 --token <value>    Set the pairing token

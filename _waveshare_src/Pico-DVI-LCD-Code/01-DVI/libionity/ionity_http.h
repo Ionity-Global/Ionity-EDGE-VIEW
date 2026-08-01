@@ -19,10 +19,16 @@ typedef struct {
 } ionity_message_t;
 
 typedef void (*ionity_http_msg_handler_t)(const char *text, const char *author);
+typedef void (*ionity_http_provision_handler_t)(const char *ssid, const char *pass);
 
 bool ionity_http_init(uint16_t port);
 void ionity_http_set_msg_handler(ionity_http_msg_handler_t handler);
 void ionity_http_send_json(const char *json);
+
+/* Provisioning mode: GET / serves the WiFi setup form, every other GET is a
+ * captive-portal redirect, POST /provision hands creds to the handler. */
+void ionity_http_set_provisioning(bool on);
+void ionity_http_set_provision_handler(ionity_http_provision_handler_t handler);
 
 /* Message queue for scrolling display */
 void ionity_http_msg_push(const char *text, const char *author);

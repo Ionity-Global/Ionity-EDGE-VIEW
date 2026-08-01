@@ -9,6 +9,8 @@
 static struct tcp_pcb *http_pcb = NULL;
 static struct tcp_pcb *http_clients[4] = {NULL};
 static ionity_http_msg_handler_t msg_handler = NULL;
+static ionity_http_provision_handler_t prov_handler = NULL;
+static bool provisioning = false;
 
 static ionity_message_t msg_queue[IONITY_HTTP_MAX_MSGS];
 static int msg_count = 0;
@@ -28,6 +30,12 @@ static const char HTTP_HEADER_JSON[] =
 static const char HTTP_HEADER_303[] =
     "HTTP/1.1 303 See Other\r\n"
     "Location: /\r\n"
+    "Connection: close\r\n\r\n";
+
+/* Captive-portal catch: send every stray probe to the setup page. */
+static const char HTTP_HEADER_302_PORTAL[] =
+    "HTTP/1.1 302 Found\r\n"
+    "Location: http://192.168.4.1/\r\n"
     "Connection: close\r\n\r\n";
 
 static const char HTTP_HEADER_CORS[] =
@@ -132,6 +140,48 @@ static const char HTML_PAGE[] =
     "setInterval(loadMsgs,5000);"
     "</script></body></html>";
 
+static const char HTML_SETUP_PAGE[] =
+    "<!DOCTYPE html><html lang=\"en\"><head>"
+    "<meta charset=\"UTF-8\">"
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+    "<title>EDGE-VIEW Setup</title>"
+    "<style>"
+    "*{margin:0;padding:0;box-sizing:border-box}"
+    "body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;"
+    "min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}"
+    ".header{text-align:center;margin:30px 0}"
+    ".header h1{color:#ff4444;font-size:2.2em;letter-spacing:4px}"
+    ".header .sub{color:#44ff44;font-size:0.9em;margin-top:5px}"
+    ".card{background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:24px;"
+    "width:100%;max-width:420px}"
+    ".card h2{color:#ff4444;margin-bottom:6px;font-size:1.2em}"
+    ".card p{color:#888;font-size:0.85em;margin-bottom:16px}"
+    "input{width:100%;padding:12px;background:#0d0d1a;border:1px solid #444;"
+    "border-radius:8px;color:#fff;font-size:1em;margin-bottom:10px}"
+    "button{background:#ff4444;color:#fff;border:none;padding:12px 24px;"
+    "border-radius:8px;font-size:1em;cursor:pointer;width:100%}"
+    "</style></head><body>"
+    "<div class=\"header\"><h1>IO-NITY</h1>"
+    "<div class=\"sub\">EDGE-VIEW &bull; WiFi Setup</div></div>"
+    "<div class=\"card\">"
+    "<h2>Join your network</h2>"
+    "<p>2.4 GHz networks only &mdash; the display cannot see 5 GHz. It saves and reboots.</p>"
+    "<form method=\"POST\" action=\"/provision\">"
+    "<input name=\"ssid\" placeholder=\"Network name (SSID)\" maxlength=\"32\" required>"
+    "<input name=\"pass\" type=\"password\" placeholder=\"Password\" maxlength=\"63\">"
+    "<button type=\"submit\">Save &amp; reboot</button>"
+    "</form></div></body></html>";
+
+static const char HTML_SAVED_PAGE[] =
+    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+    "<title>EDGE-VIEW Setup</title></head>"
+    "<body style=\"background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;"
+    "text-align:center;padding:60px 20px\">"
+    "<h1 style=\"color:#44ff44\">Saved</h1>"
+    "<p>The display is rebooting onto your network.<br>"
+    "Its new address appears on the screen once it joins.</p></body></html>";
+
 static void close_http(struct tcp_pcb *pcb) {
     for (int i = 0; i < 4; i++) {
         if (http_clients[i] == pcb) { http_clients[i] = NULL; break; }
@@ -211,6 +261,48 @@ static void http_handle_post(struct tcp_pcb *pcb, const char *body) {
     http_send(pcb, HTTP_HEADER_303, NULL);
 }
 
+/* Decode %xx and + in place. */
+static void url_decode(char *s) {
+    char *o = s;
+    while (*s) {
+        if (*s == '+') { *o++ = ' '; s++; }
+        else if (*s == '%' && s[1] && s[2]) {
+            char hex[3] = {s[1], s[2], 0};
+            *o++ = (char)strtol(hex, NULL, 16);
+            s += 3;
+        } else *o++ = *s++;
+    }
+    *o = '\0';
+}
+
+static void form_field(const char *body, const char *key, char *out, size_t out_len) {
+    out[0] = '\0';
+    size_t klen = strlen(key);
+    const char *p = body;
+    while ((p = strstr(p, key)) != NULL) {
+        if ((p == body || p[-1] == '&') && p[klen] == '=') {
+            p += klen + 1;
+            size_t i = 0;
+            while (*p && *p != '&' && i < out_len - 1) out[i++] = *p++;
+            out[i] = '\0';
+            url_decode(out);
+            return;
+        }
+        p += klen;
+    }
+}
+
+static void http_handle_provision(struct tcp_pcb *pcb, const char *body) {
+    char ssid[33], pass[65];
+    form_field(body, "ssid", ssid, sizeof(ssid));
+    form_field(body, "pass", pass, sizeof(pass));
+    if (!ssid[0]) { http_send(pcb, HTTP_HEADER_303, NULL); return; }
+
+    http_send(pcb, HTTP_HEADER_OK, HTML_SAVED_PAGE);
+    printf("[http] provision ssid='%s'\n", ssid);
+    if (prov_handler) prov_handler(ssid, pass);
+}
+
 static err_t http_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err) {
     if (p == NULL) {
         close_http(pcb);
@@ -225,6 +317,13 @@ static err_t http_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err
 
     if (strncmp(buf, "OPTIONS", 7) == 0) {
         http_send(pcb, HTTP_HEADER_CORS, NULL);
+    } else if (provisioning && strncmp(buf, "POST /provision", 15) == 0) {
+        char *body_start = strstr(buf, "\r\n\r\n");
+        http_handle_provision(pcb, body_start ? body_start + 4 : "");
+    } else if (provisioning && (strncmp(buf, "GET / ", 6) == 0)) {
+        http_send(pcb, HTTP_HEADER_OK, HTML_SETUP_PAGE);
+    } else if (provisioning && strncmp(buf, "GET ", 4) == 0) {
+        http_send(pcb, HTTP_HEADER_302_PORTAL, NULL);   /* captive-portal probes */
     } else if (strncmp(buf, "GET /messages", 13) == 0) {
         http_serve_messages(pcb);
     } else if (strncmp(buf, "POST /message", 13) == 0) {
@@ -276,6 +375,14 @@ bool ionity_http_init(uint16_t port) {
 
 void ionity_http_set_msg_handler(ionity_http_msg_handler_t handler) {
     msg_handler = handler;
+}
+
+void ionity_http_set_provisioning(bool on) {
+    provisioning = on;
+}
+
+void ionity_http_set_provision_handler(ionity_http_provision_handler_t handler) {
+    prov_handler = handler;
 }
 
 void ionity_http_msg_push(const char *text, const char *author) {

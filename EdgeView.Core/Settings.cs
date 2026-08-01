@@ -83,5 +83,5 @@ public static class EdgeViewInfo
 {
     public const string Product = "IO-nity EDGE-VIEW";
     public const string Company = "Ionity Global (Pty) Ltd";
-    public const string Version = "2.1";
+    public const string Version = "2.2";
 }

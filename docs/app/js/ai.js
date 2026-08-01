@@ -245,7 +245,7 @@ export class Sentinel {
   /** @returns {{score:number, label:string, advice:string|null, fix:object|null}} */
   assess() {
     if (!this.bridgeOnline) {
-      return { score: 0, label: 'No server', advice: 'Start EDGE-VIEW Studio and turn on the Web Console Bridge.', fix: null };
+      return { score: 0, label: 'No server', advice: 'Start or install the EDGE-VIEW app.', fix: null };
     }
     const now = Date.now();
     const total = this.tx + this.err;

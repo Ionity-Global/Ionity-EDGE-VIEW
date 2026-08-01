@@ -14,6 +14,8 @@ target_sources(libionity INTERFACE
 	${CMAKE_CURRENT_LIST_DIR}/ionity_brand.h
 	${CMAKE_CURRENT_LIST_DIR}/ionity_http.c
 	${CMAKE_CURRENT_LIST_DIR}/ionity_http.h
+	${CMAKE_CURRENT_LIST_DIR}/ionity_dhcpd.c
+	${CMAKE_CURRENT_LIST_DIR}/ionity_dhcpd.h
 	${CMAKE_CURRENT_LIST_DIR}/ionity_time.c
 	${CMAKE_CURRENT_LIST_DIR}/ionity_time.h
 	${CMAKE_CURRENT_LIST_DIR}/ionity_weather.c

@@ -95,7 +95,7 @@ bridge.events.addEventListener('bridge', (e) => {
     }
   } else {
     s.className = 'state err';
-    s.textContent = `No server on 127.0.0.1:8787 — ${error || 'not running'}. Open EDGE-VIEW Studio → Control → Web Console Bridge.`;
+    s.textContent = `No server on 127.0.0.1:8787 — ${error || 'not running'}. Start or install the EDGE-VIEW app.`;
   }
 });
 
@@ -148,7 +148,7 @@ bridge.events.addEventListener('status', (e) => {
 bridge.events.addEventListener('unpaired', () => {
   pill('pillBridge', 'err', 'Token rejected');
   $('serverState').className = 'state err';
-  $('serverState').textContent = 'Pairing token rejected — copy a fresh one from Studio → Control.';
+  $('serverState').textContent = 'Pairing token rejected. Open the installed EDGE-VIEW app, where pairing is automatic.';
 });
 
 /** Wrap a bridge call so every failure lands in the log instead of the void. */
@@ -165,6 +165,8 @@ async function guard(what, fn) {
 
 /* ───────────────────────────── server card ───────────────────────────── */
 
+const INSTALLER_URL = 'https://github.com/Ionity-Global/Ionity-EDGE-VIEW/releases/download/edgeview-latest/EdgeView-Setup.exe';
+
 $('btnPair').onclick = async () => {
   bridge.token = $('tokenInput').value.trim();
   await bridge.probe();
@@ -176,15 +178,16 @@ $('btnProbe').onclick = () => bridge.probe();
 $('btnDetach').onclick = () => { bridge.token = ''; bridge.stop(); $('tokenInput').value = ''; pill('pillBridge', 'off', 'Unpaired'); };
 
 async function startServer() {
-  // Studio registers the edgeview: scheme at install time; if it is not there
-  // the browser silently does nothing, so fall back to the download page.
+  // The installer registers edgeview:. A fresh machine falls back to the
+  // single-file installer because browsers cannot execute downloads directly.
   const before = Date.now();
   location.href = 'edgeview://start';
   setTimeout(async () => {
     const found = await bridge.probe();
     if (!found && Date.now() - before < 60000) {
       $('serverState').className = 'state err';
-      $('serverState').textContent = 'Could not launch the server from the browser — install it from the download button, then start the bridge in Studio.';
+      $('serverState').textContent = 'EDGE-VIEW is not installed. The one-file installer is downloading now; run it and the app starts automatically.';
+      location.href = INSTALLER_URL;
     }
   }, 2500);
 }
@@ -598,7 +601,7 @@ async function sendChat() {
   chatLine('you', text, 'me');
   aiBubble = null;
   const r = await guard('chat', () => bridge.say('web', text));
-  if (!r) chatLine('ionity-ai', 'No server — pair with EDGE-VIEW Studio or the host exe first.', 'ai');
+  if (!r) chatLine('ionity-ai', 'No server — start or install the EDGE-VIEW app first.', 'ai');
 }
 
 $('btnChatSend').onclick = sendChat;

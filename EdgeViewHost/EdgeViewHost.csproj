@@ -14,7 +14,7 @@
     <Company>Ionity Global (Pty) Ltd</Company>
     <Authors>Johan Wilhelm van Antwerp</Authors>
     <Description>IO-nity EDGE-VIEW: the server, the AI and the console in one application.</Description>
-    <Version>2.1.0</Version>
+    <Version>2.2.0</Version>
 
     <!-- One file, no runtime to install. -->
     <PublishSingleFile>true</PublishSingleFile>

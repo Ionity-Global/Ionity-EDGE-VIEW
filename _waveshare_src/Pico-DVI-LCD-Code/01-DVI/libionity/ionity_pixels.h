@@ -26,7 +26,7 @@ void ionity_draw_checkerboard(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1
 
 void ionity_draw_dot(uint16_t x, uint16_t y, uint8_t color, uint8_t radius);
 
-void ionity_fill_rect_fast(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t color);
+void ionity_fill_rect_fast(int x0, int y0, int x1, int y1, uint8_t color);
 
 void ionity_draw_panel(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
                        uint8_t border_color, uint8_t bg_color);
